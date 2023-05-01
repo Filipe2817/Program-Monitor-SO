@@ -3,21 +3,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include "../../common/utils.h"
-
-//#define FP
-
-#ifdef FP
-#define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
-#else
-#define FIFO_NAME "Tracer-Monitor"
-#endif
-
-/*
-Este define é para apagar quando for para entregar
-Preciso daquele path especifico para usar fifos no meu PC
-*/
+#include "../../common/include/utils.h"
 
 int createNewFifo(const char *fifo_name) {
     struct stat stats;
