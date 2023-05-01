@@ -1,13 +1,69 @@
+#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
-#include <stdlib.h>
 
-int main(int argc, char *argv[]) {
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-result"
-    write(STDOUT_FILENO, "This is the server!\n", 20);
-    #pragma GCC diagnostic pop
+#include "../../common/utils.h"
 
-    char *yay = malloc(1000);
+//#define FP
 
+#ifdef FP
+#define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
+#else
+#define FIFO_NAME "Tracer-Monitor"
+#endif
+
+/*
+Este define é para apagar quando for para entregar
+Preciso daquele path especifico para usar fifos no meu PC
+*/
+
+int createNewFifo(const char *fifo_name) {
+    struct stat stats;
+
+    if (stat(fifo_name, &stats) < 0) { // Stat failed
+        // If (errno == ENOENT), the file or directory does not exist
+        // If (errno != ENOENT), an error occurred that is unrelated to the file or directory not existing (Stat failed)
+        THROW_ERROR_IF_FAILED_WITH_RETURN(errno != ENOENT, "Stat failed\n");
+    } else {
+        // The fifo already exists so we need to delete it
+        THROW_ERROR_IF_FAILED_WITH_RETURN(unlink(fifo_name) < 0, "Unlink failed\n");
+    }
+
+    // Create new fifo
+    THROW_ERROR_IF_FAILED_WITH_RETURN(mkfifo(fifo_name, 0666) < 0, "Fifo creation failed\n");
+
+    return 0;
+}
+
+int main() {
+    char buf[1024];
+
+    int fifo_return = createNewFifo(FIFO_NAME);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(fifo_return == -1, "Error creating FIFO\n");
+
+    int fifo_fd = open(FIFO_NAME, O_RDWR);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(fifo_fd == -1, "Error opening FIFO\n");
+
+    //int log_fd = open("log.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    //THROW_ERROR_IF_FAILED_WITH_RETURN(log_fd == -1, "Error opening log file\n");
+
+    while (1) {
+        ssize_t bytes_read, written_bytes;
+        while ((bytes_read = read(fifo_fd, buf, sizeof(buf) - 1)) > 0) {
+            THROW_ERROR_IF_FAILED_WITH_RETURN(bytes_read == -1, "Error reading from FIFO\n");
+            buf[bytes_read] = '\0';
+            
+            printf("Received: %s\n", buf);
+
+            //written_bytes = write(log_fd, buf, bytes_read);
+            //THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to log file\n");
+        }
+    }
+
+    //close(log_fd);
+    close(fifo_fd);
+    unlink(FIFO_NAME);
     return 0;
 }
