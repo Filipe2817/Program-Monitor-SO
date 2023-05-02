@@ -29,27 +29,27 @@ int main() {
     int fifo_return = createNewFifo(FIFO_NAME);
     THROW_ERROR_IF_FAILED_WITH_RETURN(fifo_return == -1, "Error creating FIFO\n");
 
-    int fifo_fd = open(FIFO_NAME, O_RDWR);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(fifo_fd == -1, "Error opening FIFO\n");
+    file_desc fifo = open(FIFO_NAME, O_RDWR);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(fifo == -1, "Error opening FIFO\n");
 
-    //int log_fd = open("log.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
-    //THROW_ERROR_IF_FAILED_WITH_RETURN(log_fd == -1, "Error opening log file\n");
+    //file_desc log = open("log.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    //THROW_ERROR_IF_FAILED_WITH_RETURN(log == -1, "Error opening log file\n");
 
     while (1) {
         ssize_t bytes_read, written_bytes;
-        while ((bytes_read = read(fifo_fd, buf, sizeof(buf) - 1)) > 0) {
+        while ((bytes_read = read(fifo, buf, sizeof(buf) - 1)) > 0) {
             THROW_ERROR_IF_FAILED_WITH_RETURN(bytes_read == -1, "Error reading from FIFO\n");
             buf[bytes_read] = '\0';
             
             printf("Received: %s\n", buf);
 
-            //written_bytes = write(log_fd, buf, bytes_read);
+            //written_bytes = write(log, buf, bytes_read);
             //THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to log file\n");
         }
     }
 
-    //close(log_fd);
-    close(fifo_fd);
+    //close(log);
+    close(fifo);
     unlink(FIFO_NAME);
     return 0;
 }

@@ -17,14 +17,14 @@ int main(int argc, char *argv[]) {
         THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error executing command\n");
     }
 
-    int fd = open(FIFO_NAME, O_WRONLY);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(fd == -1, "Error opening FIFO\n");
+    file_desc fifo = open(FIFO_NAME, O_WRONLY);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(fifo == -1, "Error opening FIFO\n");
 
     while (1) {
-        ssize_t written_bytes = write(fd, argv[1], strlen(argv[1]));
+        ssize_t written_bytes = write(fifo, argv[1], strlen(argv[1]));
         THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to FIFO\n");
     }
 
-    close(fd);
+    close(fifo);
     return 0;
 }
