@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <stdio.h>
+#include <stdarg.h>
 
 #define FP
 
@@ -29,5 +30,9 @@ typedef int file_desc;
         perror(msg);                               \
         return;                                    \
     }
+
+void parse_command(const char *command, char **args);
+
+void timespec_to_timestamp(struct timespec ts, char *buffer, int size);
 
 #endif
