@@ -1,18 +1,8 @@
+#ifdef UTILS_H
+#define UTILS_H
+
 #include <stdio.h>
 #include <stdarg.h>
-
-#define FP
-
-#ifdef FP
-#define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
-#else
-#define FIFO_NAME "Tracer-Monitor"
-#endif
-
-/*
-Este define é para apagar quando for para entregar
-Preciso daquele path especifico para usar fifos no meu PC
-*/
 
 typedef int file_desc;
 
@@ -31,5 +21,7 @@ typedef int file_desc;
 void parse_command(const char *command, char **args);
 
 void timespec_to_timestamp(struct timespec ts, char *buffer, int size);
+
+int str_to_int(const char *str);
 
 #endif

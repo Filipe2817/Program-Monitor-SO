@@ -20,6 +20,10 @@ typedef struct request {
 
 Request *create_request(REQUEST_TYPE type, pid_t pid, char *program, char *timestamp, long execution_time, char *response_fifo_name);
 
+char *request_to_byte(Request *req);
+
+Request *byte_to_request(char *bytes);
+
 int send_request(Request *request, file_desc fifo);
 
 int receive_request(Request *request, file_desc fifo);

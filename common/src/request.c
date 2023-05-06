@@ -19,6 +19,53 @@ Request *create_request(REQUEST_TYPE type, pid_t pid, char *program, char *times
     return request;
 }
 
+char *request_to_byte(Request *req){
+
+    char* bytes = malloc(sizeof((char*)req));
+    pid_t pid = req->pid;
+    char *program = strdup(req->program);
+    int program_size = req->program_size;
+    char *timestamp = strdup(req->timestamp);
+    int timestamp_size = req->timestamp_size;
+    long execution_time = req->execution_time;
+    char *reponse_fifo_name = req->response_fifo_name;
+
+    bytes[0] = req->type;
+    
+    char *pid_char = malloc(sizeof((char*)pid));
+    sprintf(pid_char, "%d", pid);
+    bytes = strcat(bytes, pid_char);
+    free(pid_char);
+
+    bytes = strcat(bytes, program);
+
+    char *pid_char = malloc(sizeof((char*)program_size));
+    sprintf(pid_char, "%d", program_size);
+    bytes = strcat(bytes, pid_char);
+    free(pid_char);
+
+    bytes = strcat(bytes, timestamp);
+
+    char *pid_char = malloc(sizeof((char*)timestamp_size));
+    sprintf(pid_char, "%d", timestamp_size);
+    bytes = strcat(bytes, pid_char);
+    free(pid_char);
+
+    char *pid_char = malloc(sizeof((char*)execution_time));
+    sprintf(pid_char, "%ld", execution_time);
+    bytes = strcat(bytes, pid_char);
+    free(pid_char);
+
+    bytes = strcat(bytes, reponse_fifo_name);
+
+    return bytes;
+}
+
+Request *byte_to_request(char *bytes){
+
+    
+}
+
 int send_request(Request *request, file_desc fifo) {
     int bytes_written = 0, total_bytes = sizeof(struct request);
 
