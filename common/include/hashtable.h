@@ -3,9 +3,12 @@
 
 #define SIZE 64
 
+#include "../include/request.h"
+
 typedef struct node {
-    char *key;
-    int file_index; // value
+    int key;
+    // int file_index; // value
+    Request request;
     struct node *next;
 } Node;
 
@@ -15,11 +18,11 @@ typedef struct hashtable {
 
 Hashtable *create_hashtable();
 
-int insert(Hashtable *ht, char *key);
+void insert(Hashtable *ht, int key, Request request);
 
-int get_file_index(Hashtable *ht, char *key);
+Request get_resquest(Hashtable *ht, int key);
 
-void print_ht(Hashtable *ht);
+//void print_ht(Hashtable *ht);
 
 void free_ht(Hashtable *ht);
 
