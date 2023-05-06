@@ -1,54 +1,50 @@
 #include <stdio.h>
-#include <errno.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include "../../common/include/request.h"
 #include "../../common/include/utils.h"
 
-int createNewFifo(const char *fifo_name) {
-    struct stat stats;
+#define FP
 
-    if (stat(fifo_name, &stats) < 0) { // Stat failed
-        // If (errno == ENOENT), the file or directory does not exist
-        // If (errno != ENOENT), an error occurred that is unrelated to the file or directory not existing (Stat failed)
-        THROW_ERROR_IF_FAILED_WITH_RETURN(errno != ENOENT, "Stat failed\n");
-    } else {
-        // The fifo already exists so we need to delete it
-        THROW_ERROR_IF_FAILED_WITH_RETURN(unlink(fifo_name) < 0, "Unlink failed\n");
-    }
-
-    // Create new fifo
-    THROW_ERROR_IF_FAILED_WITH_RETURN(mkfifo(fifo_name, 0666) < 0, "Fifo creation failed\n");
-
-    return 0;
-}
+#ifdef FP
+#define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
+#else
+#define FIFO_NAME "Tracer-Monitor"
+#endif
 
 int main() {
-    char buf[1024];
-
     int fifo_return = createNewFifo(FIFO_NAME);
     THROW_ERROR_IF_FAILED_WITH_RETURN(fifo_return == -1, "Error creating FIFO\n");
 
     file_desc fifo = open(FIFO_NAME, O_RDWR);
     THROW_ERROR_IF_FAILED_WITH_RETURN(fifo == -1, "Error opening FIFO\n");
 
-    //file_desc log = open("log.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
-    //THROW_ERROR_IF_FAILED_WITH_RETURN(log == -1, "Error opening log file\n");
-
     while (1) {
-        ssize_t bytes_read, written_bytes;
-        while ((bytes_read = read(fifo, buf, sizeof(buf) - 1)) > 0) {
-            THROW_ERROR_IF_FAILED_WITH_RETURN(bytes_read == -1, "Error reading from FIFO\n");
-            buf[bytes_read] = '\0';
-            
-            printf("Received: %s\n", buf);
+        Request *request = malloc(sizeof(struct request));
+        THROW_ERROR_IF_FAILED_WITH_RETURN(request == NULL, "Error allocating memory\n");
+        
+        int read_bytes = receive_request(request, fifo);
+        THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes != request->request_total_size, "Error receiving request\n");
 
-            //written_bytes = write(log, buf, bytes_read);
-            //THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to log file\n");
-        }
+        printf("Received request:\n");
+        printf("Type: %d\n", request->type);
+        printf("PID: %d\n", request->pid);
+        printf("Program: %s\n", request->program);
+        printf("Timestamp: %s\n", request->timestamp);
+        printf("Execution time: %ld\n", request->execution_time);
+        printf("Response FIFO name: %s\n", request->response_fifo_name);
+        printf("Request total size: %d\n", request->request_total_size);
+
+        file_desc response_fifo = open(request->response_fifo_name, O_WRONLY);
+        THROW_ERROR_IF_FAILED_WITH_RETURN(response_fifo == -1, "Error opening response FIFO\n");
+        int ret_val = notify_sender(sizeof(struct request), response_fifo);
+        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error notifying sender\n");
+
+        close(response_fifo);
+        free(request);
     }
 
-    //close(log);
     close(fifo);
     unlink(FIFO_NAME);
     return 0;

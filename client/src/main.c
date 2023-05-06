@@ -7,6 +7,22 @@
 #include "../../common/include/utils.h"
 #include "../../common/include/request.h"
 
+#define FP
+
+#ifdef FP
+#define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
+#else
+#define FIFO_NAME "Tracer-Monitor"
+#endif
+
+void get_client_fifo_name(char *client_fifo_name) {
+    #ifdef FP
+    sprintf(client_fifo_name, "/home/fp/fifos/client-%d", getpid());
+    #else
+    sprintf(client_fifo_name, "client-%d", getpid());
+    #endif
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 4) {
         ssize_t written_bytes = write(STDERR_FILENO, "Invalid Arguments!\n Use: ./main-program execute -u \"prog arg-1 ... arg-n\"\n", 74);
@@ -16,9 +32,17 @@ int main(int argc, char *argv[]) {
     file_desc fifo = open(FIFO_NAME, O_WRONLY);
     THROW_ERROR_IF_FAILED_WITH_RETURN(fifo == -1, "Error opening FIFO\n");
 
-    if (!strcmp(argv[1], "execute") && !strcmp(argv[2], "-u")) {
+    char client_fifo_name[32];
+    get_client_fifo_name(client_fifo_name);
 
-        int ret_val = executor(argv[3], fifo);
+    int fifo_return = createNewFifo(client_fifo_name);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(fifo_return == -1, "Error creating FIFO\n");
+
+    file_desc client_fifo = open(client_fifo_name, O_RDWR);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(fifo == -1, "Error opening FIFO\n");
+
+    if (!strcmp(argv[1], "execute") && !strcmp(argv[2], "-u")) {
+        int ret_val = executor(argv[3], fifo, client_fifo, client_fifo_name);
         THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error executing command\n");
     }
 

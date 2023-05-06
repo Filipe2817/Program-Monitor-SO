@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 #include "../include/request.h"
 #include "../include/utils.h"
 
@@ -10,43 +11,84 @@ Request *create_request(REQUEST_TYPE type, pid_t pid, char *program, char *times
         return NULL;
     request->type = type;
     request->pid = pid;
-    request->program = strdup(program);
     request->program_size = strlen(program);
-    request->timestamp = strdup(timestamp);
+    request->program = strdup(program);
     request->timestamp_size = strlen(timestamp);
+    request->timestamp = strdup(timestamp);
     request->execution_time = execution_time;
-    request->response_fifo_name = response_fifo_name;
+    request->response_fifo_name_size = strlen(response_fifo_name);
+    request->response_fifo_name = strdup(response_fifo_name);
+    request->request_total_size = sizeof(REQUEST_TYPE) + sizeof(pid_t) + sizeof(int) + request->program_size + sizeof(int) + request->timestamp_size + sizeof(long) + sizeof(int) + request->response_fifo_name_size;
     return request;
 }
 
 int send_request(Request *request, file_desc fifo) {
-    int bytes_written = 0, total_bytes = sizeof(struct request);
-
+    int bytes_written = 0;
+    
     /*
     Chars are bytes so we can serialize the struct in binary
     Request request;
     char *buf = (char *) &request;
     */
 
-    while (bytes_written < total_bytes) {
-        int ret_val = write(fifo, ((char *)request) + bytes_written, total_bytes - bytes_written);
-        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
-        bytes_written += ret_val;
-    }
+    char *buf = request_to_bytes(request, &bytes_written);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(buf == NULL, "Error serializing request\n");
+
+    int ret_val = write(fifo, buf, bytes_written);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
 
     return 0;
 }
 
 int receive_request(Request *request, file_desc fifo) {
-    int bytes_read = 0, total_bytes = sizeof(struct request);
+    int bytes_read = 0;
 
-    while (bytes_read < total_bytes) {
-        int ret_val = read(fifo, ((char *)request) + bytes_read, total_bytes - bytes_read);
-        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
-        bytes_read += ret_val;
-    }
+    int ret_val = read(fifo, &request->type, sizeof(REQUEST_TYPE));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
 
-    return 0;
+    ret_val = read(fifo, &request->pid, sizeof(pid_t));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
+
+    ret_val = read(fifo, &request->program_size, sizeof(int));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
+
+    request->program = malloc(request->program_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(request->program == NULL, "Error allocating memory\n");
+    ret_val = read(fifo, request->program, request->program_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
+
+    ret_val = read(fifo, &request->timestamp_size, sizeof(int));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
+
+    request->timestamp = malloc(request->timestamp_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(request->timestamp == NULL, "Error allocating memory\n");
+    ret_val = read(fifo, request->timestamp, request->timestamp_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
+
+    ret_val = read(fifo, &request->execution_time, sizeof(long));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
+
+    ret_val = read(fifo, &request->response_fifo_name_size, sizeof(int));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
+
+    request->response_fifo_name = malloc(request->response_fifo_name_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(request->response_fifo_name == NULL, "Error allocating memory\n");
+    ret_val = read(fifo, request->response_fifo_name, request->response_fifo_name_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
+
+    ret_val = read(fifo, &request->request_total_size, sizeof(int));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+
+    return bytes_read;
 }
 
 int notify_sender(int received_bytes, file_desc fifo) {
@@ -79,11 +121,55 @@ int send_request_and_wait_notification(REQUEST_TYPE type, pid_t pid, char *progr
     Request *request = create_request(type, pid, program, timestamp, execution_time, response_fifo_name);
     int ret_val = send_request(request, fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error sending request\n");
-    ret_val = wait_notification(response_fifo);
     delete_request(request);
+    ret_val = wait_notification(response_fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error receiving notification\n");
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == 1, "Request not received\n");
     return 0;
+}
+
+char *request_to_bytes(Request *request, int *size) {
+    if (request == NULL || size == NULL)
+        return NULL;
+
+    char *bytes = malloc(1024 * sizeof(char));
+    if (bytes == NULL)
+        return NULL;
+
+    char *ptr = bytes;
+
+    memcpy(ptr, &request->type, sizeof(REQUEST_TYPE));
+    ptr += sizeof(REQUEST_TYPE);
+
+    memcpy(ptr, &request->pid, sizeof(pid_t));
+    ptr += sizeof(pid_t);
+
+    memcpy(ptr, &request->program_size, sizeof(int));
+    ptr += sizeof(int);
+
+    memcpy(ptr, request->program, request->program_size);
+    ptr += request->program_size;
+
+    memcpy(ptr, &request->timestamp_size, sizeof(int));
+    ptr += sizeof(int);
+
+    memcpy(ptr, request->timestamp, request->timestamp_size);
+    ptr += request->timestamp_size;
+
+    memcpy(ptr, &request->execution_time, sizeof(long));
+    ptr += sizeof(long);
+
+    memcpy(ptr, &request->response_fifo_name_size, sizeof(int));
+    ptr += sizeof(int);
+
+    memcpy(ptr, request->response_fifo_name, request->response_fifo_name_size);
+    ptr += request->response_fifo_name_size;
+
+    memcpy(ptr, &request->request_total_size, sizeof(int));
+    ptr += sizeof(int);
+
+    *size = ptr - bytes;
+    return bytes;
 }
 
 void delete_request(Request *request) {

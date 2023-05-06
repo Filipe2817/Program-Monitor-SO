@@ -31,9 +31,14 @@ SERVER_SRCS = $(call rwildcard, server/src, *.c)
 SERVER_HEADERS = $(call rwildcard, server/include, *.h)
 SERVER_OBJS = $(SERVER_SRCS:server/src/%.c=$(OBJ_DIR)/server/%.o)
 
+# Get sources, headers, and object files for common
+COMMON_SRCS = $(call rwildcard, common/src, *.c)
+COMMON_HEADERS = $(call rwildcard, common/include, *.h)
+COMMON_OBJS = $(COMMON_SRCS:common/src/%.c=$(OBJ_DIR)/common/%.o)
+
 # Other stuff to compile with
 LIBS = -lm
-INCLUDE = -Iclient/include -Iserver/include
+INCLUDE = -Iclient/include -Iserver/include -Icommon/include
 CLIENT_TARGET = client-program
 SERVER_TARGET = server-program
 
@@ -49,6 +54,12 @@ DELETING_STRING = "[DELETING]"
 RESETTING_STRING = "[RESETTING]"
 OK_STRING = "[OK]"
 
+# Link files for common
+$(OBJ_DIR)/common/%.o: common/src/%.c $(COMMON_HEADERS)
+	@mkdir -p $(dir $@)
+	@printf "%b" "$(LINKING_COLOR)$(LINKING_STRING) $(NO_COLOR)$@\n"
+	@$(CC) $(FLAGS) -c -o $@ $(INCLUDE) $< $(LIBS)
+
 # Link files for client
 $(OBJ_DIR)/client/%.o: client/src/%.c $(CLIENT_HEADERS)
 	@mkdir -p $(dir $@)
@@ -63,16 +74,16 @@ $(OBJ_DIR)/server/%.o: server/src/%.c $(SERVER_HEADERS)
 
 # Create client executable
 .PHONY: client
-client: $(CLIENT_OBJS)
+client: $(CLIENT_OBJS) $(COMMON_OBJS)
 	@printf "%b" "$(COMPILING_COLOR)$(COMPILING_STRING) $(NO_COLOR)$(CLIENT_TARGET)\n"
-	@$(CC) $(FLAGS) -o $(CLIENT_TARGET) $(CLIENT_OBJS) $(LIBS)
+	@$(CC) $(FLAGS) -o $(CLIENT_TARGET) $(CLIENT_OBJS) $(COMMON_OBJS) $(LIBS)
 	@printf "%b" "$(OK_COLOR)$(OK_STRING) $(NO_COLOR)\n"
 
 # Create server executable
 .PHONY: server
-server: $(SERVER_OBJS)
+server: $(SERVER_OBJS) $(COMMON_OBJS)
 	@printf "%b" "$(COMPILING_COLOR)$(COMPILING_STRING) $(NO_COLOR)$(SERVER_TARGET)\n"
-	@$(CC) $(FLAGS) -o $(SERVER_TARGET) $(SERVER_OBJS) $(LIBS)
+	@$(CC) $(FLAGS) -o $(SERVER_TARGET) $(SERVER_OBJS) $(COMMON_OBJS) $(LIBS)
 	@printf "%b" "$(OK_COLOR)$(OK_STRING) $(NO_COLOR)\n"
 
 # Run gdb (clean up any existing build and build debug mode)

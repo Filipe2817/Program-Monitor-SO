@@ -4,19 +4,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define FP
-
-#ifdef FP
-#define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
-#else
-#define FIFO_NAME "Tracer-Monitor"
-#endif
-
-/*
-Este define é para apagar quando for para entregar
-Preciso daquele path especifico para usar fifos no meu PC
-*/
-
 typedef int file_desc;
 
 #define THROW_ERROR_IF_FAILED_WITH_RETURN(expression, msg) \
@@ -30,6 +17,8 @@ typedef int file_desc;
         perror(msg);                               \
         return;                                    \
     }
+
+int createNewFifo(const char *fifo_name);
 
 void parse_command(const char *command, char **args);
 
