@@ -112,7 +112,7 @@ void delete(Hashtable *ht, int key)
     }
 }
 
-char *get_ongoing_programs(Hashtable *ht, struct timespec start)
+char *get_ongoing_programs(Hashtable *ht)
 {
     char *status = malloc(100 * sizeof(char));
     status[0] = '\0';
@@ -126,24 +126,27 @@ char *get_ongoing_programs(Hashtable *ht, struct timespec start)
         {
             int pid_digits = floor(log10(current->request->pid)) + 1;
 
-            struct timespec end;
-            clock_gettime(CLOCK_MONOTONIC, &end);
-            int elapsed_time = round((end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1000000.0);
+            char timestamp[32];
+            get_timestamp(timestamp, sizeof(timestamp));
+
+            int elapsed_time = get_diff_milliseconds(current->request->timestamp, timestamp);
 
             int elapsed_time_digits = floor(log10(elapsed_time)) + 1;
 
             int line_len = pid_digits + elapsed_time_digits + current->request->program_size + 6; // 6 dos 3 espaços + \n + "ms"
+
             char *status_line = malloc(line_len * sizeof(char));
+
             snprintf(status_line, line_len, "%d %s %d ms\n", current->request->pid, current->request->program, elapsed_time);
 
-            if ((len += line_len) > size)
+            if ((len += line_len) >= size)
             {
                 size *= 2;
-                char *ret_val = realloc(status, size * sizeof(char));
-                if (ret_val == NULL)
+                status = realloc(status, size * sizeof(char));
+                if (status == NULL)
                 {
                     perror("Error during realloc\n");
-                    return ret_val;
+                    return status;
                 }
 
                 strcat(status, status_line);
@@ -155,6 +158,8 @@ char *get_ongoing_programs(Hashtable *ht, struct timespec start)
             }
 
             free(status_line);
+
+            current = current->next;
         }
     }
 

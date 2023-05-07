@@ -41,7 +41,7 @@ int main()
         int read_bytes = receive_request(request, fifo);
         THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes != request->request_total_size, "Error receiving request\n");
 
-        print_request(request);
+        // print_request(request);
 
         file_desc response_fifo = open(request->response_fifo_name, O_WRONLY);
         THROW_ERROR_IF_FAILED_WITH_RETURN(response_fifo == -1, "Error opening response FIFO\n");
@@ -63,13 +63,17 @@ int main()
             break;
         case REQUEST_STATUS:
         {
-            char *status = get_ongoing_programs(ongoing_ht, start);
+            char *status = get_ongoing_programs(ongoing_ht);
 
             file_desc status_fifo = open(request->response_fifo_name, O_WRONLY);
             THROW_ERROR_IF_FAILED_WITH_RETURN(status_fifo == -1, "Error opening response FIFO.\n");
 
-            int ret_val = write(status_fifo,status,strlen(status));
-            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+            int status_size = strlen(status);
+            int ret_val_size = write(status_fifo, &status_size, sizeof(status_size));
+            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val_size == -1, "Error writing to FIFO\n");
+
+            int ret_val_status = write(status_fifo, status, strlen(status));
+            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val_status == -1, "Error writing to FIFO\n");
 
             free(status);
             close(status_fifo);

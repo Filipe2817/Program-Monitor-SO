@@ -31,4 +31,6 @@ void parse_command(const char *command, char **args);
 
 void get_timestamp(char *buffer, int size);
 
+int get_diff_milliseconds(char *earlier_ts, char *later_ts);
+
 #endif
