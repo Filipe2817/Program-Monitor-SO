@@ -59,6 +59,19 @@ int main()
             delete (ongoing_ht, request->pid);
             insert(finished_ht, request->pid, request);
 
+            char *request_string = get_request_string(request);
+
+            char pid_str[32];
+            snprintf(pid_str, 10, "%d.txt", request->pid);
+
+            int storage_fd = open(pid_str, O_WRONLY | O_CREAT, 0666);
+            THROW_ERROR_IF_FAILED_WITH_RETURN(storage_fd == -1, "Error opening file.\n");
+
+            int ret_val = write(storage_fd, request_string, strlen(request_string));
+            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to file\n");
+
+            close(storage_fd);
+            free(request_string);
             // print_ht(ht);
             break;
         case REQUEST_STATUS:

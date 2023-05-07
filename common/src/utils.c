@@ -61,7 +61,6 @@ int get_diff_milliseconds(char *earlier_ts, char *later_ts)
 
     int day1, month1, year1, hour1, minute1, second1, millisecond1;
     int day2, month2, year2, hour2, minute2, second2, millisecond2;
-    int diff_ms;
 
     sscanf(earlier_ts, "%d-%d-%d %d:%d:%d.%d", &day1, &month1, &year1, &hour1, &minute1, &second1, &millisecond1);
     sscanf(later_ts, "%d-%d-%d %d:%d:%d.%d", &day2, &month2, &year2, &hour2, &minute2, &second2, &millisecond2);
@@ -69,7 +68,7 @@ int get_diff_milliseconds(char *earlier_ts, char *later_ts)
     //printf("%d %d %d %d %d %d %d\n", day1, month1, year1, hour1, minute1, second1, millisecond1);
     //printf("%d %d %d %d %d %d %d\n", day2, month2, year2, hour2, minute2, second2, millisecond2);
 
-    diff_ms = (day2 - day1) * 24 * 60 * 60 * 1000 +
+    int diff_ms = (day2 - day1) * 24 * 60 * 60 * 1000 +
               (month2 - month1) * 30 * 24 * 60 * 60 * 1000 +
               (year2 - year1) * 365 * 24 * 60 * 60 * 1000 +
               (hour2 - hour1) * 60 * 60 * 1000 +

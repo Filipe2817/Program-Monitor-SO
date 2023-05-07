@@ -5,7 +5,8 @@
 #include "../include/request.h"
 #include "../include/utils.h"
 
-Request *create_request(REQUEST_TYPE type, pid_t pid, char *program, char *timestamp, long execution_time, char *response_fifo_name) {
+Request *create_request(REQUEST_TYPE type, pid_t pid, char *program, char *timestamp, long execution_time, char *response_fifo_name)
+{
     Request *request = malloc(sizeof(struct request));
     if (request == NULL)
         return NULL;
@@ -22,9 +23,10 @@ Request *create_request(REQUEST_TYPE type, pid_t pid, char *program, char *times
     return request;
 }
 
-int send_request(Request *request, file_desc fifo) {
+int send_request(Request *request, file_desc fifo)
+{
     int bytes_written = 0;
-    
+
     /*
     Chars are bytes so we can serialize the struct in binary
     Request request;
@@ -41,7 +43,8 @@ int send_request(Request *request, file_desc fifo) {
     return 0;
 }
 
-int receive_request(Request *request, file_desc fifo) {
+int receive_request(Request *request, file_desc fifo)
+{
     int bytes_read = 0;
 
     int ret_val = read(fifo, &request->type, sizeof(REQUEST_TYPE));
@@ -93,8 +96,10 @@ int receive_request(Request *request, file_desc fifo) {
     return bytes_read;
 }
 
-int notify_sender(int received_bytes, file_desc fifo) {
-    if (received_bytes != sizeof(struct request)) { // should never happen
+int notify_sender(int received_bytes, file_desc fifo)
+{
+    if (received_bytes != sizeof(struct request))
+    { // should never happen
         int ret_val = write(fifo, "ER", 2);
         THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
         return 0;
@@ -105,21 +110,23 @@ int notify_sender(int received_bytes, file_desc fifo) {
     return 0;
 }
 
-int wait_notification(file_desc fifo) {
+int wait_notification(file_desc fifo)
+{
     char buffer[2];
     int ret_val = read(fifo, buffer, 2);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
-    
+
     if (!strncmp(buffer, "OK", 2))
         return 0;
-    
+
     if (!strncmp(buffer, "ER", 2))
         return 1;
-    
+
     return -1;
 }
 
-int send_request_and_wait_notification(REQUEST_TYPE type, pid_t pid, char *program, char *timestamp, long execution_time, char *response_fifo_name, file_desc fifo, file_desc response_fifo) {
+int send_request_and_wait_notification(REQUEST_TYPE type, pid_t pid, char *program, char *timestamp, long execution_time, char *response_fifo_name, file_desc fifo, file_desc response_fifo)
+{
     Request *request = create_request(type, pid, program, timestamp, execution_time, response_fifo_name);
     int ret_val = send_request(request, fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error sending request\n");
@@ -130,7 +137,8 @@ int send_request_and_wait_notification(REQUEST_TYPE type, pid_t pid, char *progr
     return 0;
 }
 
-char *request_to_bytes(Request *request, int *size) {
+char *request_to_bytes(Request *request, int *size)
+{
     if (request == NULL || size == NULL)
         return NULL;
 
@@ -172,7 +180,8 @@ char *request_to_bytes(Request *request, int *size) {
 
     *size = ptr - bytes;
 
-    if (*size != request->request_total_size) {
+    if (*size != request->request_total_size)
+    {
         free(bytes);
         return NULL;
     }
@@ -180,7 +189,17 @@ char *request_to_bytes(Request *request, int *size) {
     return bytes;
 }
 
-void print_request(Request *request) { // debug purposes
+char *get_request_string(Request *request)
+{
+    char *request_string = malloc(1000 * sizeof(char));
+
+    sprintf(request_string, "Type: %d\nPID: %d\nProgram size: %d\nProgram: %s\nTimestamp size: %d\nTimestamp: %s\nExecution time: %ld\nResponse FIFO name size: %d\nResponse FIFO name: %s\nRequest total size: %d", request->type, request->pid, request->program_size, request->program, request->timestamp_size, request->timestamp, request->execution_time, request->response_fifo_name_size, request->response_fifo_name, request->request_total_size);
+
+    return request_string;
+}
+
+void print_request(Request *request)
+{ // debug purposes
     printf("==================================== Received request ====================================\n");
     printf("Type: %d\n", request->type);
     printf("PID: %d\n", request->pid);
@@ -195,7 +214,8 @@ void print_request(Request *request) { // debug purposes
     printf("==========================================================================================\n\n");
 }
 
-void delete_request(Request *request) {
+void delete_request(Request *request)
+{
     free(request->program);
     free(request->timestamp);
     free(request->response_fifo_name);
