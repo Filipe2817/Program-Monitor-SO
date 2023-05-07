@@ -29,8 +29,6 @@ int createNewFifo(const char *fifo_name);
 
 void parse_command(const char *command, char **args);
 
-void timespec_to_timestamp(struct timespec ts, char *buffer, int size);
-
-int str_to_int(const char *str);
+void get_timestamp(char *buffer, int size);
 
 #endif
