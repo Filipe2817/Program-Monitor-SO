@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <time.h>
+#include <math.h>
 #include "../include/hashtable.h"
 #include "../include/utils.h"
 
@@ -108,6 +110,60 @@ void delete(Hashtable *ht, int key)
         }
         current = &((*current)->next);
     }
+}
+
+char *get_ongoing_programs(Hashtable *ht, struct timespec start)
+{
+    char *status = malloc(100 * sizeof(char));
+    status[0] = '\0';
+    int size = 100;
+    int len = 0;
+
+    for (int i = 0; i < SIZE; i++)
+    {
+        Node *current = ht->table[i];
+        while (current != NULL)
+        {
+            int pid_digits = floor(log10(current->request->pid)) + 1;
+
+            struct timespec end;
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            int elapsed_time = round((end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1000000.0);
+
+            int elapsed_time_digits = floor(log10(elapsed_time)) + 1;
+
+            int line_len = pid_digits + elapsed_time_digits + current->request->program_size + 6; // 6 dos 3 espaços + \n + "ms"
+            char *status_line = malloc(line_len * sizeof(char));
+            snprintf(status_line, line_len, "%d %s %d ms\n", current->request->pid, current->request->program, elapsed_time);
+
+            if ((len += line_len) > size)
+            {
+                size *= 2;
+                char *ret_val = realloc(status, size * sizeof(char));
+                if (ret_val == NULL)
+                {
+                    perror("Error during realloc\n");
+                    return ret_val;
+                }
+
+                strcat(status, status_line);
+            }
+            else
+            {
+                len += line_len;
+                strcat(status, status_line);
+            }
+
+            free(status_line);
+        }
+    }
+
+    if (len == 0)
+    {
+        strcat(status, "No ongoing programs.\n");
+    }
+
+    return status;
 }
 
 void print_ht(Hashtable *ht)

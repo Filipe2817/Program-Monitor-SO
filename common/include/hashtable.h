@@ -24,6 +24,8 @@ Request *get_request(Hashtable *ht, int key);
 
 void delete(Hashtable *ht, int key);
 
+char *get_ongoing_programs(Hashtable *ht, struct timespec start);
+
 void print_ht(Hashtable *ht);
 
 void free_ht(Hashtable *ht);
