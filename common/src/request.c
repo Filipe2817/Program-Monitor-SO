@@ -11,12 +11,12 @@ Request *create_request(REQUEST_TYPE type, pid_t pid, char *program, char *times
         return NULL;
     request->type = type;
     request->pid = pid;
-    request->program_size = strlen(program);
+    request->program_size = strlen(program) + 1;
     request->program = strdup(program);
-    request->timestamp_size = strlen(timestamp);
+    request->timestamp_size = strlen(timestamp) + 1;
     request->timestamp = strdup(timestamp);
     request->execution_time = execution_time;
-    request->response_fifo_name_size = strlen(response_fifo_name);
+    request->response_fifo_name_size = strlen(response_fifo_name) + 1;
     request->response_fifo_name = strdup(response_fifo_name);
     request->request_total_size = sizeof(REQUEST_TYPE) + sizeof(pid_t) + sizeof(int) + request->program_size + sizeof(int) + request->timestamp_size + sizeof(long) + sizeof(int) + request->response_fifo_name_size + sizeof(int);
     return request;
@@ -180,48 +180,20 @@ char *request_to_bytes(Request *request, int *size) {
     return bytes;
 }
 
-/*
-char *request_to_byte(Request *req){
-    char* bytes = malloc(sizeof((char*)req));
-    pid_t pid = req->pid;
-    char *program = strdup(req->program);
-    int program_size = req->program_size;
-    char *timestamp = strdup(req->timestamp);
-    int timestamp_size = req->timestamp_size;
-    long execution_time = req->execution_time;
-    char *reponse_fifo_name = req->response_fifo_name;
-
-    bytes[0] = req->type;
-    
-    char *pid_char = malloc(sizeof((char*)pid));
-    sprintf(pid_char, "%d", pid);
-    bytes = strcat(bytes, pid_char);
-    free(pid_char);
-
-    bytes = strcat(bytes, program);
-
-    char *pid_char = malloc(sizeof((char*)program_size));
-    sprintf(pid_char, "%d", program_size);
-    bytes = strcat(bytes, pid_char);
-    free(pid_char);
-
-    bytes = strcat(bytes, timestamp);
-
-    char *pid_char = malloc(sizeof((char*)timestamp_size));
-    sprintf(pid_char, "%d", timestamp_size);
-    bytes = strcat(bytes, pid_char);
-    free(pid_char);
-
-    char *pid_char = malloc(sizeof((char*)execution_time));
-    sprintf(pid_char, "%ld", execution_time);
-    bytes = strcat(bytes, pid_char);
-    free(pid_char);
-
-    bytes = strcat(bytes, reponse_fifo_name);
-
-    return bytes;
+void print_request(Request *request) { // debug purposes
+    printf("==================================== Received request ====================================\n");
+    printf("Type: %d\n", request->type);
+    printf("PID: %d\n", request->pid);
+    printf("Program size: %d\n", request->program_size);
+    printf("Program: %s\n", request->program);
+    printf("Timestamp size: %d\n", request->timestamp_size);
+    printf("Timestamp: %s\n", request->timestamp);
+    printf("Execution time: %ld\n", request->execution_time);
+    printf("Response FIFO name size: %d\n", request->response_fifo_name_size);
+    printf("Response FIFO name: %s\n", request->response_fifo_name);
+    printf("Request total size: %d\n", request->request_total_size);
+    printf("==========================================================================================\n\n");
 }
-*/
 
 void delete_request(Request *request) {
     free(request->program);

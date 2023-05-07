@@ -31,7 +31,7 @@ void parse_command(const char *command, char **args) {
     cmd_copy = strdup(command);
     THROW_ERROR_IF_FAILED_VOID(cmd_copy == NULL, "Error allocating memory\n");
 
-    while ((token = strsep(&cmd_copy, " ")) != NULL) {
+    while ((token = strsep(&cmd_copy, " ")) != NULL) { // free(args[0]) -> args[0] has the same address as cmd_copy
         if (*token == '\0')
             continue; // Skip empty tokens
         args[argc++] = token;
