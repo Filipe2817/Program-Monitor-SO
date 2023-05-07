@@ -11,7 +11,7 @@ Request *create_request(REQUEST_TYPE type, pid_t pid, char *program, char *times
         return NULL;
     request->type = type;
     request->pid = pid;
-    request->program_size = strlen(program) + 1;
+    request->program_size = strlen(program) + 1; // Assume null-terminate is part of the string
     request->program = strdup(program);
     request->timestamp_size = strlen(timestamp) + 1;
     request->timestamp = strdup(timestamp);
