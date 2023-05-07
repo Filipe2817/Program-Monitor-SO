@@ -193,7 +193,7 @@ char *get_request_string(Request *request)
 {
     char *request_string = malloc(1000 * sizeof(char));
 
-    sprintf(request_string, "Type: %d\nPID: %d\nProgram size: %d\nProgram: %s\nTimestamp size: %d\nTimestamp: %s\nExecution time: %ld\nResponse FIFO name size: %d\nResponse FIFO name: %s\nRequest total size: %d", request->type, request->pid, request->program_size, request->program, request->timestamp_size, request->timestamp, request->execution_time, request->response_fifo_name_size, request->response_fifo_name, request->request_total_size);
+    sprintf(request_string, "Type: %d\nPID: %d\nProgram size: %d\nProgram: %s\nTimestamp size: %d\nTimestamp: %s\nExecution time: %ld\nResponse FIFO name size: %d\nResponse FIFO name: %s\nRequest total size: %d\n", request->type, request->pid, request->program_size, request->program, request->timestamp_size, request->timestamp, request->execution_time, request->response_fifo_name_size, request->response_fifo_name, request->request_total_size);
 
     return request_string;
 }
