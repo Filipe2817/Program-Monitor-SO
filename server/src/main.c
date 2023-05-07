@@ -101,6 +101,64 @@ int main(int argc, char *argv[])
 
             break;
         }
+        case REQUEST_STATS_TIME:
+        {
+            pid_t pid = fork();
+            if (pid == 0)
+            { 
+                char** list = malloc(sizeof(char**));
+                parse_command(request->program, list);
+                DIR *d;
+                struct dirent *dir;
+                d = opendir(argv[1]);
+                if (d) {
+                    while ((dir = readdir(d)) != NULL) {
+                        printf("%s\n", dir->d_name);
+                        if(found_in(list, dir->d_name)){
+                            //Function
+                        }
+                    }
+                    closedir(d);
+                }
+            }
+            write(STDOUT_FILENO, "Request_Stats_Time Forked", 26);
+        }
+        case REQUEST_STATS_COMMAND:
+        {
+            pid_t pid = fork();
+            if (pid == 0)
+            { 
+                DIR *d;
+                struct dirent *dir;
+                d = opendir(argv[1]);
+                if (d) {
+                    while ((dir = readdir(d)) != NULL) {
+                        printf("%s\n", dir->d_name);
+
+                    }
+                    closedir(d);
+                }
+            }
+            write(STDOUT_FILENO, "Request_Stats_Command Forked", 26);
+        }
+        case REQUEST_STATS_UNIQ:
+        {
+            pid_t pid = fork();
+            if (pid == 0)
+            { 
+                DIR *d;
+                struct dirent *dir;
+                d = opendir(argv[1]);
+                if (d) {
+                    while ((dir = readdir(d)) != NULL) {
+                        printf("%s\n", dir->d_name);
+
+                    }
+                    closedir(d);
+                }
+            }
+            write(STDOUT_FILENO, "Request_Stats_Uniq Forked", 26);
+        }
         default:
             break;
         }

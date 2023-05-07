@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <stdbool.h>
 #include "../include/utils.h"
 
 int createNewFifo(const char *fifo_name)
@@ -42,6 +43,25 @@ void parse_command(const char *command, char **args)
             continue; // Skip empty tokens
         args[argc++] = token;
     }
+}
+
+bool found_in(char** list, char* id){
+
+    int i = 0;
+    int flag = 0;
+    while(list[i] != 0 && flag == 0){
+        
+        if(strcmp(list[i], id)){
+            flag = 1;
+        }
+        else{
+            i++;
+        }
+    }
+    if(flag == 1){
+        return true;
+    }
+    return false;
 }
 
 void get_timestamp(char *buffer, int size)
