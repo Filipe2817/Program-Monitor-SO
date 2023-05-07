@@ -9,7 +9,8 @@
 #include "../../common/include/utils.h"
 #include "../../common/include/request.h"
 
-int executor(const char *command, file_desc fifo, file_desc client_fifo, char *client_fifo_name) {
+int executor(const char *command, file_desc fifo, file_desc client_fifo, char *client_fifo_name)
+{
     char **args = calloc(256, sizeof(char *));
     parse_command(command, args);
 
@@ -17,14 +18,18 @@ int executor(const char *command, file_desc fifo, file_desc client_fifo, char *c
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     pid_t pid = fork();
-    if (pid == 0) {
+    if (pid == 0)
+    {
         int ret_val = execvp(args[0], args); // only returns if there is an error (-1)
-        if (ret_val == -1) {
+        if (ret_val == -1)
+        {
             perror("Error executing command");
             _exit(EXIT_FAILURE);
         }
         _exit(EXIT_SUCCESS);
-    } else if (pid < 0) {
+    }
+    else if (pid < 0)
+    {
         free(args[0]);
         free(args);
         perror("Fork failed");
@@ -32,12 +37,9 @@ int executor(const char *command, file_desc fifo, file_desc client_fifo, char *c
     }
 
     char buffer[32];
-    timespec_to_timestamp(&start, buffer, sizeof(buffer));
+    timespec_to_timestamp(start, buffer, sizeof(buffer));
     int ret_val = send_request_and_wait_notification(REQUEST_EXECUTE_START, pid, args[0], buffer, 0, client_fifo_name, fifo, client_fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error with request and notification exchange\n");
-
-    free(args[0]);
-    free(args);
 
     snprintf(buffer, sizeof(buffer), "Running PID %d\n", pid);
     int written_bytes = write(STDOUT_FILENO, buffer, strlen(buffer));
@@ -55,9 +57,32 @@ int executor(const char *command, file_desc fifo, file_desc client_fifo, char *c
     written_bytes = write(STDOUT_FILENO, buffer, strlen(buffer));
     THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
 
-    timespec_to_timestamp(&end, buffer, sizeof(buffer));
+    timespec_to_timestamp(end, buffer, sizeof(buffer));
     ret_val = send_request_and_wait_notification(REQUEST_EXECUTE_END, pid, args[0], buffer, elapsed_time, client_fifo_name, fifo, client_fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error with request and notification exchange\n");
 
+    free(args[0]);
+    free(args);
+
     return exit_status;
+}
+
+int execute_status(file_desc fifo, file_desc client_fifo, char *client_fifo_name)
+{
+    int ret_val = send_request_and_wait_notification(REQUEST_STATUS, getpid(), "", "", 0, client_fifo_name, fifo, client_fifo);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error sending the request.")
+
+    char *status = calloc(1000, sizeof(char));
+
+    int read_bytes, written_bytes;
+    
+    read_bytes = read(client_fifo, status, 100);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from fifo.")
+
+    written_bytes = write(STDOUT_FILENO, status, strlen(status));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
+
+    free(status);
+
+    return 0;
 }

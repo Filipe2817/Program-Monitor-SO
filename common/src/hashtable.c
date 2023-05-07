@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdint.h>
+#include <unistd.h>
 #include "../include/hashtable.h"
 #include "../include/utils.h"
 
@@ -19,12 +21,16 @@ unsigned int hash(unsigned int x)
     return x % SIZE;
 }
 
-Node *create_node(int key, Request request)
+Node *create_node(int key, Request *request)
 {
-    static int index = 0;
+    // static int index = 0;
     Node *new = malloc(sizeof(struct node));
 
-    THROW_ERROR_IF_FAILED_VOID(new, "Error: Unable to allocate memory for node!\n");
+    if (new == NULL)
+    {
+        perror("Error: Unable to allocate memory for node!\n");
+        exit(EXIT_FAILURE);
+    }
 
     new->key = key;
     new->request = request;
@@ -37,11 +43,19 @@ Hashtable *create_hashtable()
 {
     Hashtable *new = malloc(sizeof(struct hashtable));
 
-    THROW_ERROR_IF_FAILED_VOID(new, "Error: Unable to allocate memory for hashtable!\n");
+    if (new == NULL)
+    {
+        perror("Error: Unable to allocate memory for node!\n");
+        exit(EXIT_FAILURE);
+    }
 
     new->table = malloc(sizeof(Node *) * SIZE);
 
-    THROW_ERROR_IF_FAILED_VOID(new->table, "Error: Unable to allocate memory for hashtable array!\n");
+    if (new->table == NULL)
+    {
+        perror("Error: Unable to allocate memory for hashtable array!\n");
+        exit(EXIT_FAILURE);
+    }
 
     for (int i = 0; i < SIZE; i++)
         new->table[i] = NULL;
@@ -49,7 +63,7 @@ Hashtable *create_hashtable()
     return new;
 }
 
-void insert(Hashtable *ht, int key, Request request)
+void insert(Hashtable *ht, int key, Request *request)
 {
     uint32_t index = hash(key);
     // int *file_index = NULL;
@@ -61,7 +75,7 @@ void insert(Hashtable *ht, int key, Request request)
     // return *file_index;
 }
 
-Request get_request(Hashtable *ht, int key)
+Request *get_request(Hashtable *ht, int key)
 {
     uint32_t index = hash(key);
     Node *current = ht->table[index];
@@ -88,6 +102,7 @@ void delete(Hashtable *ht, int key)
         {
             Node *temp = *current;
             *current = (*current)->next;
+            delete_request(temp->request);
             free(temp);
             return;
         }
@@ -95,20 +110,28 @@ void delete(Hashtable *ht, int key)
     }
 }
 
-// void print_ht(Hashtable *ht)
-// {
-//     for (int i = 0; i < SIZE; i++)
-//     {
-//         printf("[%d] | ", i);
-//         Node *current = ht->table[i];
-//         while (current != NULL)
-//         {
-//             printf("(Key: %s, Index: %d) -> ", current->key, current->file_index);
-//             current = current->next;
-//         }
-//         printf("NULL\n");
-//     }
-// }
+void print_ht(Hashtable *ht)
+{
+    for (int i = 0; i < SIZE; i++)
+    {
+        Node *current = ht->table[i];
+        while (current != NULL)
+        {
+            printf("----------> [%d] <---------- \n", i);
+            printf("(Key: %d)\n", current->key);
+            printf("Type: %d\n", current->request->type);
+            printf("PID: %d\n", current->request->pid);
+            printf("Program: %s\n", current->request->program);
+            printf("Timestamp: %s\n", current->request->timestamp);
+            printf("Execution time: %ld\n", current->request->execution_time);
+            printf("Response FIFO name: %s\n", current->request->response_fifo_name);
+            printf("Request total size: %d\n", current->request->program_size);
+            printf("REQUEST PRINTED\n");
+            current = current->next;
+        }
+    }
+    printf("Hashtable printed.\n\n");
+}
 
 void free_ht(Hashtable *ht)
 {
@@ -119,6 +142,7 @@ void free_ht(Hashtable *ht)
         {
             Node *temp = current;
             current = current->next;
+            delete_request(temp->request);
             free(temp);
         }
     }
