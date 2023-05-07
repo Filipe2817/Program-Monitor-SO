@@ -36,7 +36,7 @@ int send_request_and_wait_notification(REQUEST_TYPE type, pid_t pid, char *progr
 
 char *request_to_bytes(Request *request, int *size);
 
-char *request_to_byte(Request *req);
+//char *request_to_byte(Request *req);
 
 Request *byte_to_request(char *bytes);
 

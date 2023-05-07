@@ -32,12 +32,9 @@ int executor(const char *command, file_desc fifo, file_desc client_fifo, char *c
     }
 
     char buffer[32];
-    timespec_to_timestamp(start, buffer, sizeof(buffer));
+    get_timestamp(buffer, sizeof(buffer));
     int ret_val = send_request_and_wait_notification(REQUEST_EXECUTE_START, pid, args[0], buffer, 0, client_fifo_name, fifo, client_fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error with request and notification exchange\n");
-
-    free(args[0]);
-    free(args);
 
     snprintf(buffer, sizeof(buffer), "Running PID %d\n", pid);
     int written_bytes = write(STDOUT_FILENO, buffer, strlen(buffer));
@@ -55,9 +52,12 @@ int executor(const char *command, file_desc fifo, file_desc client_fifo, char *c
     written_bytes = write(STDOUT_FILENO, buffer, strlen(buffer));
     THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
 
-    timespec_to_timestamp(end, buffer, sizeof(buffer));
+    get_timestamp(buffer, sizeof(buffer));
     ret_val = send_request_and_wait_notification(REQUEST_EXECUTE_END, pid, args[0], buffer, elapsed_time, client_fifo_name, fifo, client_fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error with request and notification exchange\n");
+
+    free(args[0]);
+    free(args);
 
     return exit_status;
 }

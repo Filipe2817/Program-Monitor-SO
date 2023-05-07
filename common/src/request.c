@@ -18,7 +18,7 @@ Request *create_request(REQUEST_TYPE type, pid_t pid, char *program, char *times
     request->execution_time = execution_time;
     request->response_fifo_name_size = strlen(response_fifo_name);
     request->response_fifo_name = strdup(response_fifo_name);
-    request->request_total_size = sizeof(REQUEST_TYPE) + sizeof(pid_t) + sizeof(int) + request->program_size + sizeof(int) + request->timestamp_size + sizeof(long) + sizeof(int) + request->response_fifo_name_size;
+    request->request_total_size = sizeof(REQUEST_TYPE) + sizeof(pid_t) + sizeof(int) + request->program_size + sizeof(int) + request->timestamp_size + sizeof(long) + sizeof(int) + request->response_fifo_name_size + sizeof(int);
     return request;
 }
 
@@ -37,6 +37,7 @@ int send_request(Request *request, file_desc fifo) {
     int ret_val = write(fifo, buf, bytes_written);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
 
+    free(buf);
     return 0;
 }
 
@@ -87,6 +88,7 @@ int receive_request(Request *request, file_desc fifo) {
 
     ret_val = read(fifo, &request->request_total_size, sizeof(int));
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+    bytes_read += ret_val;
 
     return bytes_read;
 }
@@ -121,8 +123,8 @@ int send_request_and_wait_notification(REQUEST_TYPE type, pid_t pid, char *progr
     Request *request = create_request(type, pid, program, timestamp, execution_time, response_fifo_name);
     int ret_val = send_request(request, fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error sending request\n");
-    ret_val = wait_notification(response_fifo);
     delete_request(request);
+    ret_val = wait_notification(response_fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error receiving notification\n");
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == 1, "Request not received\n");
     return 0;
@@ -169,11 +171,17 @@ char *request_to_bytes(Request *request, int *size) {
     ptr += sizeof(int);
 
     *size = ptr - bytes;
+
+    if (*size != request->request_total_size) {
+        free(bytes);
+        return NULL;
+    }
+
     return bytes;
 }
 
+/*
 char *request_to_byte(Request *req){
-
     char* bytes = malloc(sizeof((char*)req));
     pid_t pid = req->pid;
     char *program = strdup(req->program);
@@ -213,6 +221,7 @@ char *request_to_byte(Request *req){
 
     return bytes;
 }
+*/
 
 Request *byte_to_request(char *bytes){
 
