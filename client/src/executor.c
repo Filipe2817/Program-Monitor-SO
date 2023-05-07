@@ -9,7 +9,8 @@
 #include "../../common/include/utils.h"
 #include "../../common/include/request.h"
 
-int executor(const char *command, file_desc fifo, file_desc client_fifo, char *client_fifo_name) {
+int executor(const char *command, file_desc fifo, file_desc client_fifo, char *client_fifo_name)
+{
     char **args = calloc(256, sizeof(char *));
     parse_command(command, args);
 
@@ -17,14 +18,18 @@ int executor(const char *command, file_desc fifo, file_desc client_fifo, char *c
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     pid_t pid = fork();
-    if (pid == 0) {
+    if (pid == 0)
+    {
         int ret_val = execvp(args[0], args); // only returns if there is an error (-1)
-        if (ret_val == -1) {
+        if (ret_val == -1)
+        {
             perror("Error executing command");
             _exit(EXIT_FAILURE);
         }
         _exit(EXIT_SUCCESS);
-    } else if (pid < 0) {
+    }
+    else if (pid < 0)
+    {
         free(args[0]);
         free(args);
         perror("Fork failed");
@@ -60,4 +65,27 @@ int executor(const char *command, file_desc fifo, file_desc client_fifo, char *c
     free(args);
 
     return exit_status;
+}
+
+int execute_status(file_desc fifo, file_desc client_fifo, char *client_fifo_name)
+{
+    int ret_val = send_request_and_wait_notification(REQUEST_STATUS, getpid(), "", "", 0, client_fifo_name, fifo, client_fifo);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error sending the request.")
+
+    int read_bytes_status, read_bytes_size, written_bytes, buffer_size;
+
+    read_bytes_size = read(client_fifo, &buffer_size, sizeof(int));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_size == -1, "Error reading from fifo.")
+
+    char *status = calloc(buffer_size, sizeof(char));
+
+    read_bytes_status = read(client_fifo, status, buffer_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_status == -1, "Error reading from fifo.")
+
+    written_bytes = write(STDOUT_FILENO, status, buffer_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
+
+    free(status);
+
+    return 0;
 }

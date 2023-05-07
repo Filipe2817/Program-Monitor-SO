@@ -5,4 +5,6 @@
 
 int executor(const char *command, file_desc fifo, file_desc client_fifo, char *client_fifo_name);
 
+int execute_status(file_desc fifo, file_desc client_fifo, char *client_fifo_name);
+
 #endif
