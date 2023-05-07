@@ -223,11 +223,6 @@ char *request_to_byte(Request *req){
 }
 */
 
-Request *byte_to_request(char *bytes){
-
-    
-}
-
 void delete_request(Request *request) {
     free(request->program);
     free(request->timestamp);
