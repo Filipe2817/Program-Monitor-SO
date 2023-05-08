@@ -106,6 +106,7 @@ int main(int argc, char *argv[])
             pid_t pid = fork();
             if (pid == 0)
             { 
+                long final_value = 0;
                 char** list = malloc(sizeof(char**));
                 parse_command(request->program, list);
                 DIR *d;
@@ -113,12 +114,37 @@ int main(int argc, char *argv[])
                 d = opendir(argv[1]);
                 if (d) {
                     while ((dir = readdir(d)) != NULL) {
-                        printf("%s\n", dir->d_name);
+                        //printf("%s\n", dir->d_name);
                         if(found_in(list, dir->d_name)){
-                            //Function
+                            
+                            file_desc fd = open(dir->d_name, O_RDONLY);
+                            char* read_buf = malloc(sizeof(char*));
+                            read(fd, read_buf, 500);
+                            close(fd);
+
+                            int count = 0;
+                            int flag = 0;
+                            char *paragraph = strtok(read_buf, "\n");
+                            while (paragraph != NULL && flag == 0) {
+                                count++;
+                                if (count == 7)
+                                    flag = 1;
+                                if (flag == 0)
+                                    paragraph = strtok(NULL, "\n");
+                            }
+                            char[strlen(paragraph) - 16] time;
+                            strncpy(time, paragraph + 16, (strlen(paragraph) - 16));
+                            time[strlen(paragraph) - 16] = 0;
+                            
+                            char *endptr;
+                            long val = strtol(time, &endptr, 10);
+
+                            final_value = final_value + val;
                         }
                     }
                     closedir(d);
+
+                    //CODIGO
                 }
             }
             write(STDOUT_FILENO, "Request_Stats_Time Forked", 26);
