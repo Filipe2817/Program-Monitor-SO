@@ -140,12 +140,30 @@ int main(int argc, char *argv[])
                             long val = strtol(time, &endptr, 10);
 
                             final_value = final_value + val;
+                            free(endptr);
+                            free(paragraph);
+                            free(read_buf);
                         }
                     }
                     closedir(d);
 
-                    //CODIGO
+                    char *buf = malloc(sizeof(char*));
+                    sprintf(buf, "%ld", final_value);
+                    file_desc fifo = open(request->response_fifo_name, WRONLY);
+                    int ret_val = write(fifo, buf, strlen(buf));
+                    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+
+                    close(fifo);
+                    free(buf);
                 }
+
+                int i = 0;
+                while(list[i] != NULL){
+
+                    free(list[i]);
+                    i++;
+                }
+                free(list);
             }
             write(STDOUT_FILENO, "Request_Stats_Time Forked", 26);
         }
