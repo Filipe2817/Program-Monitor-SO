@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
                             file_desc fd = open(dir->d_name, O_RDONLY);
                             char* read_buf = malloc(sizeof(char*));
                             int ret_val = read(fd, read_buf, 500);
-                            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
+                            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from File\n");
                             close(fd);
 
                             int count = 0;
@@ -172,16 +172,51 @@ int main(int argc, char *argv[])
         {
             pid_t pid = fork();
             if (pid == 0)
-            { 
+            {
+                int final_count = 0;
                 DIR *d;
                 struct dirent *dir;
                 d = opendir(argv[1]);
                 if (d) {
                     while ((dir = readdir(d)) != NULL) {
-                        printf("%s\n", dir->d_name);
+                        //printf("%s\n", dir->d_name);
+                        file_desc fd = open(dir->d_name, O_RDONLY);
+                        char* read_buf = malloc(sizeof(char*));
+                        int ret_val = read(fd, read_buf, 500);
+                        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from File\n");
+                        close(fd);
+                
+                        int count = 0;
+                        int flag = 0;
+                        char *paragraph = strtok(read_buf, "\n");
+                        while (paragraph != NULL && flag == 0) {
+                            count++;
+                            if (count == 4)
+                                flag = 1;
+                            if (flag == 0)
+                                paragraph = strtok(NULL, "\n");
+                        }
+                        char[strlen(paragraph) - 9] prog;
+                        strncpy(prog, paragraph + 9, (strlen(paragraph) - 9));
+                        prog[strlen(paragraph) - 9] = 0;
 
+                        if (strcmp(prog, request->program)){
+                            final_count++;
+                        }
+
+                        free(paragraph);
+                        free(read_buf);
                     }
                     closedir(d);
+
+                    char *buf = malloc(sizeof(char*));
+                    sprintf(buf, "Stats_command: %d vezes", final_count);
+                    file_desc fifo = open(request->response_fifo_name, WRONLY);
+                    int ret_val = write(fifo, buf, strlen(buf));
+                    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+
+                    close(fifo);
+                    free(buf);
                 }
             }
             write(STDOUT_FILENO, "Request_Stats_Command Forked", 26);
@@ -190,16 +225,64 @@ int main(int argc, char *argv[])
         {
             pid_t pid = fork();
             if (pid == 0)
-            { 
+            {
+                char **list = malloc(sizeof(char**));
+                int i = 0;
                 DIR *d;
                 struct dirent *dir;
                 d = opendir(argv[1]);
                 if (d) {
                     while ((dir = readdir(d)) != NULL) {
-                        printf("%s\n", dir->d_name);
+                        //printf("%s\n", dir->d_name);
+                        file_desc fd = open(dir->d_name, O_RDONLY);
+                        char* read_buf = malloc(sizeof(char*));
+                        int ret_val = read(fd, read_buf, 500);
+                        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from File\n");
+                        close(fd);
 
+                        int count = 0;
+                        int flag = 0;
+                        char *paragraph = strtok(read_buf, "\n");
+                        while (paragraph != NULL && flag == 0) 
+                        {
+                            count++;
+                            if (count == 4)
+                                flag = 1;
+                            if (flag == 0)
+                                paragraph = strtok(NULL, "\n");
+                        }
+
+                        char[strlen(paragraph) - 9] prog;
+                        strncpy(prog, paragraph + 9, (strlen(paragraph) - 9));
+                        prog[strlen(paragraph) - 9] = 0;
+
+                        if (!found_in(list, prog)){
+                            i = 0;
+                            while (list[i] != 0)
+                            {
+                                i++;
+                            }
+                            strcpy(list[i], prog);
+                        }
+
+                        free(paragraph);
+                        free(read_buf);
                     }
                     closedir(d);
+
+                    char *buf = malloc(sizeof(char*));
+                    strcat(buf, "Stats_uniq:/n")
+                    for (int j = 0; j < i; j++) {
+                        strcat(buf, list[j]);
+                        strcat(buf, "/n");
+                    }
+
+                    file_desc fifo = open(request->response_fifo_name, WRONLY);
+                    int ret_val = write(fifo, buf, strlen(buf));
+                    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+
+                    close(fifo);
+                    free(buf);
                 }
             }
             write(STDOUT_FILENO, "Request_Stats_Uniq Forked", 26);

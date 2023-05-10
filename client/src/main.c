@@ -66,6 +66,16 @@ int main(int argc, char *argv[])
 
         free(pids);
     }
+    else if (!strcmp(argv[1], "stats_command"))
+    {
+        int ret_val = execute_stats_command(fifo, client_fifo, client_fifo_name, argv[2]);
+        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error executing command\n");
+    }
+    else if (!strcmp(argv[1], "stats_uniq"))
+    {
+        int ret_val = execute_stats_uniq(fifo, client_fifo, client_fifo_name);
+        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error executing command\n");
+    }
 
     close(fifo);
     return 0;
