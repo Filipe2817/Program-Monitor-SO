@@ -54,6 +54,18 @@ int main(int argc, char *argv[])
         int ret_val = execute_status(fifo, client_fifo, client_fifo_name);
         THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error getting status.\n");
     }
+    else if (!strcmp(argv[1], "stats_time"))
+    {
+        char *pids = malloc(sizeof(char*));
+        for (int i = 0; i < argc; i++) {
+            strcat(pids, argv[i]);
+            strcat(pids, " ");
+        }
+        int ret_val = execute_stats_time(fifo, client_fifo, client_fifo_name, pids);
+        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error executing command\n");
+
+        free(pids);
+    }
 
     close(fifo);
     return 0;

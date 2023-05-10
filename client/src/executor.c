@@ -89,3 +89,26 @@ int execute_status(file_desc fifo, file_desc client_fifo, char *client_fifo_name
 
     return 0;
 }
+
+int execute_stats_time(file_desc fifo, file_desc client_fifo, char *client_fifo_name, char *pids)
+{
+    int ret_val = send_request_and_wait_notification(REQUEST_STATS_TIME, getpid(), pids, "", 0, client_fifo_name, fifo, client_fifo);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error sending the request.")
+
+    int read_bytes_status, read_bytes_size, written_bytes, buffer_size;
+
+    read_bytes_size = read(client_fifo, &buffer_size, sizeof(int));
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_size == -1, "Error reading from fifo.")
+
+    char *stats_time = calloc(buffer_size, sizeof(char));
+
+    read_bytes_status = read(client_fifo, stats_time, buffer_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_status == -1, "Error reading from fifo.")
+
+    written_bytes = write(STDOUT_FILENO, stats_time, buffer_size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
+
+    free(stats_time);
+
+    return 0;
+}

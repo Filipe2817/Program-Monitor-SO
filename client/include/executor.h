@@ -7,4 +7,6 @@ int executor(const char *command, file_desc fifo, file_desc client_fifo, char *c
 
 int execute_status(file_desc fifo, file_desc client_fifo, char *client_fifo_name);
 
+int execute_stats_time(file_desc fifo, file_desc client_fifo, char *client_fifo_name, char *pids);
+
 #endif

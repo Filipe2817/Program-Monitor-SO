@@ -119,7 +119,8 @@ int main(int argc, char *argv[])
                             
                             file_desc fd = open(dir->d_name, O_RDONLY);
                             char* read_buf = malloc(sizeof(char*));
-                            read(fd, read_buf, 500);
+                            int ret_val = read(fd, read_buf, 500);
+                            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from FIFO\n");
                             close(fd);
 
                             int count = 0;
@@ -148,7 +149,7 @@ int main(int argc, char *argv[])
                     closedir(d);
 
                     char *buf = malloc(sizeof(char*));
-                    sprintf(buf, "%ld", final_value);
+                    sprintf(buf, "Stats_time: %ld milisegundos", final_value);
                     file_desc fifo = open(request->response_fifo_name, WRONLY);
                     int ret_val = write(fifo, buf, strlen(buf));
                     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
