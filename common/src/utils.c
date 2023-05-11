@@ -6,6 +6,9 @@
 #include <errno.h>
 #include <stdbool.h>
 #include "../include/utils.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <limits.h>
 
 int createNewFifo(const char *fifo_name)
 {
@@ -45,13 +48,13 @@ void parse_command(const char *command, char **args)
     }
 }
 
-bool found_in(char** list, char* id){
+int found_in(char** list, char* id){
 
     int i = 0;
     int flag = 0;
     while(list[i] != 0 && flag == 0){
         
-        if(strcmp(list[i], id)){
+        if(strcmp(list[i], id) == 0){
             flag = 1;
         }
         else{
@@ -59,9 +62,9 @@ bool found_in(char** list, char* id){
         }
     }
     if(flag == 1){
-        return true;
+        return 1;
     }
-    return false;
+    return 0;
 }
 
 void get_timestamp(char *buffer, int size)
@@ -97,4 +100,27 @@ int get_diff_milliseconds(char *earlier_ts, char *later_ts)
               (millisecond2 - millisecond1);
 
     return diff_ms;
+}
+
+int str_to_int(const char *str) {
+    char *endptr;
+    errno = 0;
+
+    long long_var = strtol(str, &endptr, 10);
+    //   out of range   , extra junk at end,  no conversion at all
+    if (errno == ERANGE || *endptr != '\0' || str == endptr) {
+        perror("Something went wrong converting string to integer!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Needed when `int` and `long` have different ranges
+    #if LONG_MIN < INT_MIN || LONG_MAX > INT_MAX
+    if (long_var < INT_MIN || long_var > INT_MAX) {
+        errno = ERANGE;
+        perror("String value is out of range for type integer\n");
+        exit(EXIT_FAILURE);
+    }
+    #endif
+
+    return (int)long_var;
 }

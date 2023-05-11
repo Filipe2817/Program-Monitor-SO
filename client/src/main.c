@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     }
     else if (!strcmp(argv[1], "stats_time"))
     {
-        char *pids = malloc(sizeof(char*));
+        char *pids = calloc(argc+1, sizeof(char*));
         for (int i = 0; i < argc; i++) {
             strcat(pids, argv[i]);
             strcat(pids, " ");

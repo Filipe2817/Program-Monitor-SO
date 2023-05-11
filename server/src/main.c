@@ -98,49 +98,78 @@ int main(int argc, char *argv[]) {
         case REQUEST_STATS_TIME: {
             pid_t pid = fork();
             if (pid == 0) {
-                long final_value = 0;
-                char **list = malloc(sizeof(char **));
+                int final_value = 0;
+                char **list = malloc(sizeof(char**));
                 parse_command(request->program, list);
                 DIR *d;
                 struct dirent *dir;
                 d = opendir(argv[1]);
                 if (d) {
                     while ((dir = readdir(d)) != NULL) {
-                        //printf("%s\n", dir->d_name);
-                        if (found_in(list, dir->d_name)) {
-                            file_desc fd = open(dir->d_name, O_RDONLY);
-                            char *read_buf = malloc(sizeof(char *));
-                            int ret_val = read(fd, read_buf, 500);
-                            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from File\n");
-                            close(fd);
+                        printf("%s\n", dir->d_name);                        
+                        int stop = 0;
+                        if(strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0){
+                            stop = 1;
+                        }
+                        if(stop == 0)
+                        {
+                            char *dir_aux = calloc(strlen(dir->d_name), sizeof(char*));
+                            strcpy(dir_aux, dir->d_name);
+                            dir_aux[strlen(dir_aux) - 4] = '\0';
 
-                            int count = 0;
-                            int flag = 0;
-                            char *paragraph = strtok(read_buf, "\n");
-                            while (paragraph != NULL && flag == 0) {
-                                count++;
-                                if (count == 7)
-                                    flag = 1;
-                                if (flag == 0)
-                                    paragraph = strtok(NULL, "\n");
+                            char *dir_name = calloc(strlen(dir_aux), sizeof(char*));
+                            int j = 0;
+                            while(dir_aux[j] != 0){
+
+                                dir_name[j] = dir_aux[j];
+                                j++;
                             }
-                            char time[64];
-                            strncpy(time, paragraph + 16, (strlen(paragraph) - 16));
-                            time[strlen(paragraph) - 16] = 0;
+                            dir_name[j] = 0;
+                            puts("begin");
+                            printf("- %s\n", dir_name);
+                            int b = found_in(list, dir_name);
+                            printf("- %d\n", b);
+                            if (b == 1)
+                            {
+                                puts("inside");
+                                char *aux_buf = calloc(200, sizeof(char*));
+                                sprintf(aux_buf, "%s/%s", argv[1], dir->d_name);
+                                file_desc fd = open(aux_buf, O_RDONLY);
+                                char *read_buf = calloc(500, sizeof(char*));
+                                int ret_val = read(fd, read_buf, 500);
+                                THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from File\n");
+                                close(fd);
+                                free(aux_buf);
 
-                            char *endptr;
-                            long val = strtol(time, &endptr, 10);
+                                int count = 0;
+                                int flag = 0;
+                                char *paragraph = strtok(read_buf, "\n");
+                                while (paragraph != NULL && flag == 0) {
+                                    count++;
+                                    if (count == 7)
+                                        flag = 1;
+                                    if (flag == 0)
+                                        paragraph = strtok(NULL, "\n");
+                                }
+                                char time[64];
+                                strncpy(time, paragraph + 16, (strlen(paragraph) - 16));
+                                time[strlen(paragraph) - 16] = 0;
 
-                            final_value = final_value + val;
-                            free(endptr);
-                            free(paragraph);
-                            free(read_buf);
+                                int val = str_to_int(time);;
+                                final_value = final_value + val;
+
+                                //free(paragraph);
+                                free(read_buf);
+                            }
+                            puts("end");
+                            free(dir_name);
+                            free(dir_aux);
                         }
                     }
                     closedir(d);
 
-                    char *buf = malloc(sizeof(char *));
-                    sprintf(buf, "Stats_time: %ld milisegundos", final_value);
+                    char *buf = calloc(200, sizeof(char*));
+                    sprintf(buf, "Stats_time: %d milisegundos\n", final_value);
                     file_desc fifo = open(request->response_fifo_name, O_WRONLY);
                     int ret_val = write(fifo, buf, strlen(buf));
                     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
@@ -150,7 +179,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 int i = 0;
-                while (list[i] != NULL) {
+                while (list[i] != 0) {
 
                     free(list[i]);
                     i++;
@@ -158,6 +187,8 @@ int main(int argc, char *argv[]) {
                 free(list);
             }
             //write(STDOUT_FILENO, "\nRequest_Stats_Time Forked\n", 30);
+
+            break;
         }
         case REQUEST_STATS_COMMAND: {
             pid_t pid = fork();
@@ -218,18 +249,20 @@ int main(int argc, char *argv[]) {
                 }
             }
             //write(STDOUT_FILENO, "\nRequest_Stats_Command Forked\n", 30);
+
+            break;
         }
         case REQUEST_STATS_UNIQ: {
             pid_t pid = fork();
             if (pid == 0) {
-                char **list = malloc(sizeof(char **));
-                int i = 0;
+                char **list = malloc(sizeof(char**));
+                int i;
                 DIR *d;
                 struct dirent *dir;
                 d = opendir(argv[1]);
                 if (d) {
                     while ((dir = readdir(d)) != NULL) {
-                        printf("%s\n", dir->d_name);                        
+                        //printf("%s\n", dir->d_name);                        
                         int stop = 0;
                         if(strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0){
                             stop = 1;
@@ -259,26 +292,23 @@ int main(int argc, char *argv[]) {
                             char prog[64];
                             strncpy(prog, paragraph + 9, (strlen(paragraph) - 9));
                             prog[strlen(paragraph) - 9] = 0;
-                            printf("%s\n", prog);
                             if (!found_in(list, prog)) {
                                 i = 0;
-                                printf("%s %s", prog, list[i]);
                                 while (list[i] != 0) {
                                     i++;
-                                    printf("%d\n", i);
                                 }
+                                list[i] = calloc(strlen(prog), sizeof(char*));
                                 strcpy(list[i], prog);
                             }
-                            puts("there");
                             //free(paragraph);
                             free(read_buf);
                         }
                     }
                     closedir(d);
 
-                    char *buf = malloc(sizeof(char *));
-                    strcat(buf, "Stats_uniq:/n");
-                    for (int j = 0; j < i; j++) {
+                    char *buf = calloc(250, sizeof(char*));
+                    strcat(buf, "Stats_uniq:\n");
+                    for (int j = 0; j <= i; j++) {
                         strcat(buf, list[j]);
                         strcat(buf, "\n");
                     }
@@ -292,6 +322,8 @@ int main(int argc, char *argv[]) {
                 }
             }
             //write(STDOUT_FILENO, "\nRequest_Stats_Uniq Forked\n", 30);
+
+            break;
         }
         default:
             break;
