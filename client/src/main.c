@@ -7,7 +7,7 @@
 #include "../../common/include/utils.h"
 #include "../../common/include/request.h"
 
-// #define FP
+#define FP
 
 #ifdef FP
 #define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"

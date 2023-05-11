@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #ifndef UTILS_H
 #define UTILS_H
