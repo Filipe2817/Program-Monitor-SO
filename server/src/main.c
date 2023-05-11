@@ -21,7 +21,7 @@
 #endif
 
 int main(int argc, char *argv[]) {
-    int fifo_return = createNewFifo(FIFO_NAME);
+    int fifo_return = create_new_fifo(FIFO_NAME);
     THROW_ERROR_IF_FAILED_WITH_RETURN(fifo_return == -1, "Error creating FIFO\n");
 
     file_desc fifo = open(FIFO_NAME, O_RDWR);
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
             if (pid == 0) {
                 long final_value = 0;
                 char **list = malloc(sizeof(char **));
-                parse_command(request->program, list);
+                parse_command(request->program, list, " ");
                 DIR *d;
                 struct dirent *dir;
                 d = opendir(argv[1]);
