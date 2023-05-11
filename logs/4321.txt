@@ -1,0 +1,10 @@
+Type: 3
+PID: 4321
+Program size: 3
+Program: ls
+Timestamp size: 24
+Timestamp: 08-05-2023 21:00:21.668
+Execution time: 1
+Response FIFO name size: 13
+Response FIFO name: client-14891
+Request total size: 72

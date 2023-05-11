@@ -2,6 +2,7 @@
 #define REQUEST_H
 
 #include "utils.h"
+#include <stdbool.h>
 
 typedef enum request_type {
     REQUEST_EXECUTE_START,

@@ -10,6 +10,7 @@
 #include "../../common/include/utils.h"
 #include "../../common/include/request.h"
 #include "../../common/include/hashtable.h"
+#include <stdbool.h>
 
 // #define FP
 

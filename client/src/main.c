@@ -6,6 +6,7 @@
 #include "../include/executor.h"
 #include "../../common/include/utils.h"
 #include "../../common/include/request.h"
+#include <stdbool.h>
 
 // #define FP
 
