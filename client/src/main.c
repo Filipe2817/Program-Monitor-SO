@@ -8,7 +8,7 @@
 #include "../../common/include/request.h"
 #include <stdbool.h>
 
-#define FP
+//#define FP
 
 #ifdef FP
 #define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
@@ -69,8 +69,12 @@ int main(int argc, char *argv[])
     }
     else if (!strcmp(argv[1], "stats_command"))
     {
+        //char *buf = calloc(strlen(argv[2]), sizeof(char*));
+        //buf = strdup(argv[2]);
         int ret_val = execute_stats_command(fifo, client_fifo, client_fifo_name, argv[2]);
         THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error executing command\n");
+
+        //free(buf);
     }
     else if (!strcmp(argv[1], "stats_uniq"))
     {
