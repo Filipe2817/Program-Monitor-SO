@@ -99,14 +99,14 @@ int main(int argc, char *argv[]) {
             pid_t pid = fork();
             if (pid == 0) {
                 int final_value = 0;
-                char **list = malloc(sizeof(char**));
+                char **list = calloc(200, sizeof(char*));
                 parse_command(request->program, list);
                 DIR *d;
                 struct dirent *dir;
                 d = opendir(argv[1]);
                 if (d) {
                     while ((dir = readdir(d)) != NULL) {
-                        printf("%s\n", dir->d_name);                        
+                        //printf("%s\n", dir->d_name);                        
                         int stop = 0;
                         if(strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0){
                             stop = 1;
@@ -125,13 +125,9 @@ int main(int argc, char *argv[]) {
                                 j++;
                             }
                             dir_name[j] = 0;
-                            puts("begin");
-                            printf("- %s\n", dir_name);
                             int b = found_in(list, dir_name);
-                            printf("- %d\n", b);
                             if (b == 1)
                             {
-                                puts("inside");
                                 char *aux_buf = calloc(200, sizeof(char*));
                                 sprintf(aux_buf, "%s/%s", argv[1], dir->d_name);
                                 file_desc fd = open(aux_buf, O_RDONLY);
@@ -161,7 +157,6 @@ int main(int argc, char *argv[]) {
                                 //free(paragraph);
                                 free(read_buf);
                             }
-                            puts("end");
                             free(dir_name);
                             free(dir_aux);
                         }
@@ -178,12 +173,7 @@ int main(int argc, char *argv[]) {
                     free(buf);
                 }
 
-                int i = 0;
-                while (list[i] != 0) {
-
-                    free(list[i]);
-                    i++;
-                }
+                free(list[0]);
                 free(list);
             }
             //write(STDOUT_FILENO, "\nRequest_Stats_Time Forked\n", 30);
