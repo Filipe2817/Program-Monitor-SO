@@ -29,14 +29,14 @@ pid_t execute_pipeline(char *command, int index, int **pipe_fd, int n_commands) 
         }
 
         if (execvp(args[0], args) == -1) {
-            perror("Exec\n");
+            perror("Exec");
         }
 
         _exit(1);
     } else if (pid < 0) {
         free(args[0]);
         free(args);
-        perror("Fork\n");
+        perror("Fork");
         return -1;
     }
 
@@ -57,6 +57,8 @@ int execute(const char *line, file_desc fifo, file_desc client_fifo, char *clien
     char **commands = malloc(32 * sizeof(char *));
     int n_commands = parse_command(line, commands, "|");
     int **pipe_fd = malloc((n_commands - 1) * sizeof(int *));
+    char *commands_names = malloc(32 * sizeof(char)), *ptr = commands_names;
+    commands_names[0] = '\0';
 
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -64,12 +66,14 @@ int execute(const char *line, file_desc fifo, file_desc client_fifo, char *clien
     for (int i = 0; i < n_commands; i++) {
         if (i < n_commands - 1) {
             pipe_fd[i] = malloc(2 * sizeof(int));
-            if (pipe(pipe_fd[i]) == -1) {
-                perror("Pipe\n");
-                exit(EXIT_FAILURE);
-            }
+            THROW_ERROR_IF_FAILED_WITH_RETURN(pipe(pipe_fd[i]) == -1, "Error creating pipe");
         }
         
+        if (i > 0) {
+            ptr = strnconcat(ptr, " ", 1);
+        } 
+        ptr = strnconcat(ptr, commands[i], strcspn(commands[i], " "));
+
         pid_t pid = execute_pipeline(commands[i], i, pipe_fd, n_commands);
         
         if (pid == -1) {
@@ -87,34 +91,35 @@ int execute(const char *line, file_desc fifo, file_desc client_fifo, char *clien
 
     char buffer[32];
     get_timestamp(buffer, sizeof(buffer));
-    int ret_val = send_request_and_wait_notification(REQUEST_EXECUTE_START, getpid(), commands[0], buffer, 0, client_fifo_name, fifo, client_fifo);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error with request and notification exchange\n");
+    int ret_val = send_request_and_wait_notification(REQUEST_EXECUTE_START, getpid(), commands_names, buffer, 0, client_fifo_name, fifo, client_fifo);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error with request and notification exchange");
 
     snprintf(buffer, sizeof(buffer), "Running PID %d\n", getpid());
     int written_bytes = write(STDOUT_FILENO, buffer, strlen(buffer));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
+    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout");
 
     for (int i = 0; i < n_commands; i++) {
         int status;
-        pid_t terminated_pid = wait(&status);
+        (void) wait(&status);
         int exit_status = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-        THROW_ERROR_IF_FAILED_WITH_RETURN(exit_status == -1, "Error executing program\n");
+        THROW_ERROR_IF_FAILED_WITH_RETURN(exit_status == -1, "Error executing program");
     }
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     int elapsed_time = round((end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1000000.0);
     snprintf(buffer, sizeof(buffer), "Ended in %d ms\n", elapsed_time);
     written_bytes = write(STDOUT_FILENO, buffer, strlen(buffer));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
+    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout");
 
     get_timestamp(buffer, sizeof(buffer));
-    ret_val = send_request_and_wait_notification(REQUEST_EXECUTE_END, getpid(), commands[0], buffer, elapsed_time, client_fifo_name, fifo, client_fifo);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error with request and notification exchange\n");
+    ret_val = send_request_and_wait_notification(REQUEST_EXECUTE_END, getpid(), commands_names, buffer, elapsed_time, client_fifo_name, fifo, client_fifo);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error with request and notification exchange");
 
     free(commands[0]);
     free(commands);
+    free(commands_names);
 
-    return exit_status;
+    return 0;
 }
 
 int execute_status(file_desc fifo, file_desc client_fifo, char *client_fifo_name) {
@@ -124,15 +129,15 @@ int execute_status(file_desc fifo, file_desc client_fifo, char *client_fifo_name
     int read_bytes_status, read_bytes_size, written_bytes, buffer_size;
 
     read_bytes_size = read(client_fifo, &buffer_size, sizeof(int));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_size == -1, "Error reading from fifo.")
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_size == -1, "Error reading from fifo")
 
     char *status = calloc(buffer_size, sizeof(char));
 
     read_bytes_status = read(client_fifo, status, buffer_size);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_status == -1, "Error reading from fifo.")
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_status == -1, "Error reading from fifo")
 
     written_bytes = write(STDOUT_FILENO, status, buffer_size);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
+    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout");
 
     free(status);
 
@@ -151,10 +156,10 @@ int execute_stats_time(file_desc fifo, file_desc client_fifo, char *client_fifo_
     char *stats_time = calloc(100, sizeof(char));
 
     read_bytes_status = read(client_fifo, stats_time, 100);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_status == -1, "Error reading from fifo.")
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_status == -1, "Error reading from fifo")
 
     written_bytes = write(STDOUT_FILENO, stats_time, 100);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
+    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout");
 
     free(stats_time);
 
@@ -173,10 +178,10 @@ int execute_stats_command(file_desc fifo, file_desc client_fifo, char *client_fi
     char *stats_com = calloc(100, sizeof(char));
 
     read_bytes_status = read(client_fifo, stats_com, 100);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_status == -1, "Error reading from fifo.")
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_status == -1, "Error reading from fifo")
 
     written_bytes = write(STDOUT_FILENO, stats_com, 100);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
+    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout");
 
     free(stats_com);
 
@@ -198,7 +203,7 @@ int execute_stats_uniq(file_desc fifo, file_desc client_fifo, char *client_fifo_
     THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes_status == -1, "Error reading from fifo.")
 
     written_bytes = write(STDOUT_FILENO, stats_uniq, 250);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout\n");
+    THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stdout");
 
     free(stats_uniq);
 

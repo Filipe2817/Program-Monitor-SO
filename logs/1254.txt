@@ -1,0 +1,10 @@
+Type: 1
+PID: 1254
+Program size: 3
+Program: ls
+Timestamp size: 24
+Timestamp: 12-05-2023 15:10:38.357
+Execution time: 91
+Response FIFO name size: 27
+Response FIFO name: /home/fp/fifos/client-1254
+Request total size: 86

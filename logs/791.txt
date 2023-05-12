@@ -1,0 +1,10 @@
+Type: 1
+PID: 791
+Program size: 17
+Program: grep cut uniq wc
+Timestamp size: 24
+Timestamp: 12-05-2023 14:53:29.372
+Execution time: 2
+Response FIFO name size: 26
+Response FIFO name: /home/fp/fifos/client-791
+Request total size: 99

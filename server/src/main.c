@@ -12,7 +12,7 @@
 #include "../../common/include/hashtable.h"
 #include <stdbool.h>
 
-//#define FP
+#define FP
 
 #ifdef FP
 #define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
         int read_bytes = receive_request(request, fifo);
         THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes != request->request_total_size, "Error receiving request\n");
 
-        // print_request(request);
+        print_request(request);
 
         file_desc response_fifo = open(request->response_fifo_name, O_WRONLY);
         THROW_ERROR_IF_FAILED_WITH_RETURN(response_fifo == -1, "Error opening response FIFO\n");

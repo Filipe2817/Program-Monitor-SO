@@ -34,6 +34,6 @@ void get_timestamp(char *buffer, int size);
 
 int get_diff_milliseconds(char *earlier_ts, char *later_ts);
 
-char *str_concat(char *dest, char *src);
+char *strnconcat(char *dest, char *src, int n);
 
 #endif

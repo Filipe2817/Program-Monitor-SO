@@ -97,8 +97,18 @@ int get_diff_milliseconds(char *earlier_ts, char *later_ts) {
     return diff_ms;
 }
 
-char *str_concat(char *dest, char *src) {
-    while (*dest) dest++;
-    while (*dest++ = *src++);
-    return --dest;
+char *strnconcat(char *dest, char *src, int n) {
+    char *dest_start = dest;
+
+    while (*dest)
+        dest++;
+
+    while (*src && n > 0) {
+        *dest++ = *src++;
+        n--;
+    }
+
+    *dest = '\0';
+
+    return dest_start;
 }

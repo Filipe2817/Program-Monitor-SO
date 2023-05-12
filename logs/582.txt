@@ -1,0 +1,10 @@
+Type: 1
+PID: 582
+Program size: 17
+Program: grepcut uniq wc 
+Timestamp size: 24
+Timestamp: 12-05-2023 14:49:46.349
+Execution time: 10
+Response FIFO name size: 26
+Response FIFO name: /home/fp/fifos/client-582
+Request total size: 99

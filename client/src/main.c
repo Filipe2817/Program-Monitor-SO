@@ -8,7 +8,7 @@
 #include "../../common/include/request.h"
 #include <stdbool.h>
 
-//#define FP
+#define FP
 
 #ifdef FP
 #define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"

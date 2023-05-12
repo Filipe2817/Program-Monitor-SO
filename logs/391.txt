@@ -1,0 +1,10 @@
+Type: 1
+PID: 391
+Program size: 15
+Program: ls -a -i -l -r
+Timestamp size: 24
+Timestamp: 12-05-2023 14:47:52.924
+Execution time: 88
+Response FIFO name size: 26
+Response FIFO name: /home/fp/fifos/client-391
+Request total size: 97
