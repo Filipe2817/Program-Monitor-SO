@@ -1,0 +1,10 @@
+Type: 1
+PID: 9350
+Program size: 3
+Program: ls
+Timestamp size: 24
+Timestamp: 13-05-2023 23:44:35.964
+Execution time: 1
+Response FIFO name size: 12
+Response FIFO name: client-9350
+Request total size: 71

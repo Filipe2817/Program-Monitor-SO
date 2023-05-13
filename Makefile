@@ -86,6 +86,10 @@ server: $(SERVER_OBJS) $(COMMON_OBJS)
 	@$(CC) $(FLAGS) -o $(SERVER_TARGET) $(SERVER_OBJS) $(COMMON_OBJS) $(LIBS)
 	@printf "%b" "$(OK_COLOR)$(OK_STRING) $(NO_COLOR)\n"
 
+
+.PHONY: all
+all: client server
+
 # Run gdb (clean up any existing build and build debug mode)
 # Warning: make gdb client will execute "gdb client" and then "client" (pain to debug)
 # Solution: make gdb cli and make gdb srv

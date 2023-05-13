@@ -10,6 +10,8 @@
 #include "../../common/include/hashtable.h"
 #include "../include/handler.h"
 
+#define FIFO_NAME "Tracer-Monitor"
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         printf("Usage: %s <storage directory>\n", argv[0]);
