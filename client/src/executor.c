@@ -74,7 +74,7 @@ int execute(const char *line, file_desc fifo, file_desc client_fifo, char *clien
         }
         
         if (i > 0) {
-            ptr = strnconcat(ptr, " ", 1);
+            ptr = strnconcat(ptr, "| ", 2);
         } 
         ptr = strnconcat(ptr, commands[i], strcspn(commands[i], " "));
 

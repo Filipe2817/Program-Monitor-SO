@@ -1,0 +1,10 @@
+Type: 1
+PID: 4917
+Program size: 6
+Program: sleep
+Timestamp size: 24
+Timestamp: 13-05-2023 20:45:35.559
+Execution time: 30001
+Response FIFO name size: 27
+Response FIFO name: /home/fp/fifos/client-4917
+Request total size: 89

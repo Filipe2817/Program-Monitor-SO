@@ -1,0 +1,10 @@
+Type: 1
+PID: 4342
+Program size: 3
+Program: ps
+Timestamp size: 24
+Timestamp: 13-05-2023 20:40:14.958
+Execution time: 14
+Response FIFO name size: 27
+Response FIFO name: /home/fp/fifos/client-4342
+Request total size: 86

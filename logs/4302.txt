@@ -1,0 +1,10 @@
+Type: 1
+PID: 4302
+Program size: 3
+Program: ls
+Timestamp size: 24
+Timestamp: 13-05-2023 20:40:06.866
+Execution time: 91
+Response FIFO name size: 27
+Response FIFO name: /home/fp/fifos/client-4302
+Request total size: 86

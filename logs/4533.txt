@@ -1,0 +1,10 @@
+Type: 1
+PID: 4533
+Program size: 23
+Program: grep | cut | uniq | wc
+Timestamp size: 24
+Timestamp: 13-05-2023 20:42:51.007
+Execution time: 2
+Response FIFO name size: 27
+Response FIFO name: /home/fp/fifos/client-4533
+Request total size: 106
