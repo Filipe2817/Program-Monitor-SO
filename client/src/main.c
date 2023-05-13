@@ -8,7 +8,7 @@
 #include "../../common/include/request.h"
 #include <stdbool.h>
 
-// #define FP
+#define FP
 
 #ifdef FP
 #define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
@@ -25,11 +25,11 @@ void get_client_fifo_name(char *client_fifo_name) {
 }
 
 int main(int argc, char *argv[]) {
-    // if (argc != 4)
-    // {
-    //     ssize_t written_bytes = write(STDERR_FILENO, "Invalid Arguments!\n Use: ./main-program execute -u \"prog arg-1 ... arg-n\"\n", 74);
-    //     THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stderr\n");
-    // }
+    if (argc < 2) {
+        ssize_t written_bytes = write(STDERR_FILENO, "Invalid Arguments!\n", 20);
+        THROW_ERROR_IF_FAILED_WITH_RETURN(written_bytes == -1, "Error writing to stderr\n");
+        exit(EXIT_FAILURE);
+    }
 
     file_desc fifo = open(FIFO_NAME, O_WRONLY);
     THROW_ERROR_IF_FAILED_WITH_RETURN(fifo == -1, "Error opening FIFO\n");
@@ -49,28 +49,39 @@ int main(int argc, char *argv[]) {
     } else if (!strcmp(argv[1], "status")) {
         int ret_val = execute_status(fifo, client_fifo, client_fifo_name);
         THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error getting status.\n");
-    } else if (!strcmp(argv[1], "stats_time")) {
-        char *pids = calloc(argc + 1, sizeof(char *));
-        for (int i = 0; i < argc; i++) {
-            strcat(pids, argv[i]);
-            strcat(pids, " ");
+    } else if (!strcmp(argv[1], "stats-time")) {
+        char *pids = malloc(512 * sizeof(char)), *ptr = pids;
+        for (int i = 2; i < argc; i++) {
+            ptr = strnconcat(ptr, argv[i], strlen(argv[i]));
+            ptr = strnconcat(ptr, " ", 1);
         }
+        pids[strlen(pids) - 1] = '\0';
         int ret_val = execute_stats_time(fifo, client_fifo, client_fifo_name, pids);
-        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error executing command\n");
-
+        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error getting stats-time.\n");
         free(pids);
-    } else if (!strcmp(argv[1], "stats_command")) {
-        // char *buf = calloc(strlen(argv[2]), sizeof(char*));
-        // buf = strdup(argv[2]);
-        int ret_val = execute_stats_command(fifo, client_fifo, client_fifo_name, argv[2]);
-        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error executing command\n");
-
-        // free(buf);
-    } else if (!strcmp(argv[1], "stats_uniq")) {
-        int ret_val = execute_stats_uniq(fifo, client_fifo, client_fifo_name);
-        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error executing command\n");
+    } else if (!strcmp(argv[1], "stats-command")) {
+        char *info = malloc(512 * sizeof(char)), *ptr = info;
+        for (int i = 2; i < argc; i++) {
+            ptr = strnconcat(ptr, argv[i], strlen(argv[i]));
+            ptr = strnconcat(ptr, " ", 1);
+        }
+        info[strlen(info) - 1] = '\0';
+        int ret_val = execute_stats_command(fifo, client_fifo, client_fifo_name, info);
+        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error getting stats-command.\n");
+        free(info);
+    } else if (!strcmp(argv[1], "stats-uniq")) {
+        char *pids = malloc(512 * sizeof(char)), *ptr = pids;
+        for (int i = 2; i < argc; i++) {
+            ptr = strnconcat(ptr, argv[i], strlen(argv[i]));
+            ptr = strnconcat(ptr, " ", 1);
+        }
+        pids[strlen(pids) - 1] = '\0';
+        int ret_val = execute_stats_uniq(fifo, client_fifo, client_fifo_name, pids);
+        THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error getting stats-uniq.\n");
+        free(pids);
     }
 
+    close(client_fifo);
     close(fifo);
     return 0;
 }

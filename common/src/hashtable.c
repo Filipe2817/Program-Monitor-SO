@@ -18,18 +18,15 @@
 //     return result % SIZE;
 // }
 
-unsigned int hash(unsigned int x)
-{
+unsigned int hash(unsigned int x) {
     return x % SIZE;
 }
 
-Node *create_node(int key, Request *request)
-{
+Node *create_node(int key, Request *request) {
     // static int index = 0;
     Node *new = malloc(sizeof(struct node));
 
-    if (new == NULL)
-    {
+    if (new == NULL) {
         perror("Error: Unable to allocate memory for node!\n");
         exit(EXIT_FAILURE);
     }
@@ -41,20 +38,17 @@ Node *create_node(int key, Request *request)
     return new;
 }
 
-Hashtable *create_hashtable()
-{
+Hashtable *create_hashtable() {
     Hashtable *new = malloc(sizeof(struct hashtable));
 
-    if (new == NULL)
-    {
+    if (new == NULL) {
         perror("Error: Unable to allocate memory for node!\n");
         exit(EXIT_FAILURE);
     }
 
     new->table = malloc(sizeof(Node *) * SIZE);
 
-    if (new->table == NULL)
-    {
+    if (new->table == NULL) {
         perror("Error: Unable to allocate memory for hashtable array!\n");
         exit(EXIT_FAILURE);
     }
@@ -65,8 +59,7 @@ Hashtable *create_hashtable()
     return new;
 }
 
-void insert(Hashtable *ht, int key, Request *request)
-{
+void insert(Hashtable *ht, int key, Request *request) {
     uint32_t index = hash(key);
     // int *file_index = NULL;
 
@@ -77,13 +70,11 @@ void insert(Hashtable *ht, int key, Request *request)
     // return *file_index;
 }
 
-Request *get_request(Hashtable *ht, int key)
-{
+Request *get_request(Hashtable *ht, int key) {
     uint32_t index = hash(key);
     Node *current = ht->table[index];
 
-    while (current != NULL)
-    {
+    while (current != NULL) {
         if (current->key == key)
             return current->request;
         current = current->next;
@@ -93,15 +84,12 @@ Request *get_request(Hashtable *ht, int key)
     exit(0); // suspeito
 }
 
-void delete(Hashtable *ht, int key)
-{
+void delete(Hashtable *ht, int key) {
     uint32_t index = hash(key);
     Node **current = &(ht->table[index]);
 
-    while (*current != NULL)
-    {
-        if ((*current)->key == key)
-        {
+    while (*current != NULL) {
+        if ((*current)->key == key) {
             Node *temp = *current;
             *current = (*current)->next;
             delete_request(temp->request);
@@ -112,18 +100,15 @@ void delete(Hashtable *ht, int key)
     }
 }
 
-char *get_ongoing_programs(Hashtable *ht)
-{
+char *get_ongoing_programs(Hashtable *ht) {
     char *status = malloc(100 * sizeof(char));
     status[0] = '\0';
     int size = 100;
     int len = 0;
 
-    for (int i = 0; i < SIZE; i++)
-    {
+    for (int i = 0; i < SIZE; i++) {
         Node *current = ht->table[i];
-        while (current != NULL)
-        {
+        while (current != NULL) {
             int pid_digits = floor(log10(current->request->pid)) + 1;
 
             char timestamp[32];
@@ -139,20 +124,16 @@ char *get_ongoing_programs(Hashtable *ht)
 
             snprintf(status_line, line_len, "%d %s %d ms\n", current->request->pid, current->request->payload, elapsed_time);
 
-            if ((len += line_len) >= size)
-            {
+            if ((len += line_len) >= size) {
                 size *= 2;
                 status = realloc(status, size * sizeof(char));
-                if (status == NULL)
-                {
+                if (status == NULL) {
                     perror("Error during realloc\n");
                     return status;
                 }
 
                 strcat(status, status_line);
-            }
-            else
-            {
+            } else {
                 len += line_len;
                 strcat(status, status_line);
             }
@@ -163,21 +144,17 @@ char *get_ongoing_programs(Hashtable *ht)
         }
     }
 
-    if (len == 0)
-    {
+    if (len == 0) {
         strcat(status, "No ongoing programs.\n");
     }
 
     return status;
 }
 
-void print_ht(Hashtable *ht)
-{
-    for (int i = 0; i < SIZE; i++)
-    {
+void print_ht(Hashtable *ht) {
+    for (int i = 0; i < SIZE; i++) {
         Node *current = ht->table[i];
-        while (current != NULL)
-        {
+        while (current != NULL) {
             printf("----------> [%d] <---------- \n", i);
             printf("(Key: %d)\n", current->key);
             printf("Type: %d\n", current->request->type);
@@ -194,13 +171,10 @@ void print_ht(Hashtable *ht)
     printf("Hashtable printed.\n\n");
 }
 
-void free_ht(Hashtable *ht)
-{
-    for (int i = 0; i < SIZE; i++)
-    {
+void free_ht(Hashtable *ht) {
+    for (int i = 0; i < SIZE; i++) {
         Node *current = ht->table[i];
-        while (current != NULL)
-        {
+        while (current != NULL) {
             Node *temp = current;
             current = current->next;
             delete_request(temp->request);

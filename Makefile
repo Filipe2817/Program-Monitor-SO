@@ -39,8 +39,8 @@ COMMON_OBJS = $(COMMON_SRCS:common/src/%.c=$(OBJ_DIR)/common/%.o)
 # Other stuff to compile with
 LIBS = -lm
 INCLUDE = -Iclient/include -Iserver/include -Icommon/include
-CLIENT_TARGET = client-program
-SERVER_TARGET = server-program
+CLIENT_TARGET = tracer
+SERVER_TARGET = monitor
 
 # Pretty stuff (using %b in printf to interpret escape sequences as special characters) (alternatively echo -e "string" can be used)
 NO_COLOR = \033[m

@@ -127,7 +127,10 @@ int send_request_and_wait_notification(REQUEST_TYPE type, pid_t pid, char *paylo
     delete_request(request);
     ret_val = wait_notification(response_fifo);
     THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error receiving notification\n");
-    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == 1, "Request not received\n");
+    if (ret_val == 1) {
+        perror("Error sending request\n");
+        exit(EXIT_FAILURE);
+    }
     return 0;
 }
 
@@ -206,56 +209,61 @@ void print_request(Request *request) { // debug purposes
 
 Request *read_request_from_file(char *path) {
     file_desc fd = open(path, O_RDONLY);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(fd == -1, "Error opening file\n");
 
     Request *request = malloc(sizeof(struct request));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(request == NULL, "Error allocating memory\n");
     memset(request, 0, sizeof(struct request));
 
     char buffer[1024];
     int read_bytes = 0;
 
     read_bytes = readln(fd, buffer, sizeof(buffer));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
-    sscanf(buffer, "Type: %d", &request->type);
+    if (read_bytes == -1)
+        return NULL;
+    sscanf(buffer, "Type: %u", &request->type);
 
     read_bytes = readln(fd, buffer, sizeof(buffer));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
+    if (read_bytes == -1)
+        return NULL;
     sscanf(buffer, "PID: %d", &request->pid);
 
     read_bytes = readln(fd, buffer, sizeof(buffer));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
+    if (read_bytes == -1)
+        return NULL;
     sscanf(buffer, "Program size: %d", &request->payload_size);
-
     request->payload = malloc(request->payload_size * sizeof(char));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(request->payload == NULL, "Error allocating memory\n");
-    read_bytes = readln(fd, request->payload, request->payload_size);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
+    read_bytes = readln(fd, buffer, sizeof(buffer));
+    if (read_bytes == -1)
+        return NULL;
+    sscanf(buffer, "Program: %[^\n]s", request->payload); // %[^\n]s -> read until '\n' or EOF
 
     read_bytes = readln(fd, buffer, sizeof(buffer));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
+    if (read_bytes == -1)
+        return NULL;
     sscanf(buffer, "Timestamp size: %d", &request->timestamp_size);
-
     request->timestamp = malloc(request->timestamp_size * sizeof(char));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(request->timestamp == NULL, "Error allocating memory\n");
-    read_bytes = readln(fd, request->timestamp, request->timestamp_size);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
+    read_bytes = readln(fd, buffer, sizeof(buffer));
+    if (read_bytes == -1)
+        return NULL;
+    sscanf(buffer, "Timestamp: %[^\n]s", request->timestamp);
 
     read_bytes = readln(fd, buffer, sizeof(buffer));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
+    if (read_bytes == -1)
+        return NULL;
     sscanf(buffer, "Execution time: %ld", &request->execution_time);
 
     read_bytes = readln(fd, buffer, sizeof(buffer));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
+    if (read_bytes == -1)
+        return NULL;
     sscanf(buffer, "Response FIFO name size: %d", &request->response_fifo_name_size);
-
     request->response_fifo_name = malloc(request->response_fifo_name_size * sizeof(char));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(request->response_fifo_name == NULL, "Error allocating memory\n");
-    read_bytes = readln(fd, request->response_fifo_name, request->response_fifo_name_size);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
+    read_bytes = readln(fd, buffer, sizeof(buffer));
+    if (read_bytes == -1)
+        return NULL;
+    sscanf(buffer, "Response FIFO name: %[^\n]s", request->response_fifo_name);
 
     read_bytes = readln(fd, buffer, sizeof(buffer));
-    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == -1, "Error reading from file\n");
+    if (read_bytes == -1)
+        return NULL;
     sscanf(buffer, "Request total size: %d", &request->request_total_size);
 
     close(fd);

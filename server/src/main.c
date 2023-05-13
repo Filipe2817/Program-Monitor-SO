@@ -11,7 +11,7 @@
 #include "../../common/include/hashtable.h"
 #include "../../common/include/array.h"
 
-// #define FP
+#define FP
 
 #ifdef FP
 #define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
             // print_ht(ht);
             break;
 
-        case REQUEST_STATUS:
+        case REQUEST_STATUS: ;
             char *status = get_ongoing_programs(ongoing_ht);
 
             file_desc status_fifo = open(request->response_fifo_name, O_WRONLY);
@@ -95,11 +95,15 @@ int main(int argc, char *argv[]) {
             break;
 
         case REQUEST_STATS_TIME:
-            pid_t pid = fork();
-            if (pid == 0) {
-                char **pids = malloc(64 * sizeof(char *));
-                int num_pids = parse_command(request->payload, pids, " ");
+            if (fork() == 0) {
+                char **info = malloc(64 * sizeof(char *));
+                int num_pids = parse_command(request->payload, info, " ");
                 Array *files = get_file_pids(argv[1]);
+
+                int *pids = malloc(num_pids * sizeof(int));
+                convert_string_array_to_int_array(info, pids, num_pids);
+                free(info[0]);
+                free(info);
 
                 // sort to avoid multiple loops over the directory
                 qsort(pids, num_pids, sizeof(int), compare_ints);
@@ -131,14 +135,13 @@ int main(int argc, char *argv[]) {
                         file_index++;
                     }
                 }
-                free(pids[0]);
                 free(pids);
                 delete_array(files);
 
                 char *buf = malloc(64 * sizeof(char));
                 sprintf(buf, "Total execution time is %ld\n", total_time);
                 file_desc fifo = open(request->response_fifo_name, O_WRONLY);
-                int ret_val = write(fifo, buf, strlen(buf));
+                int ret_val = write(fifo, buf, strlen(buf) + 1);
                 THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
                 close(fifo);
                 free(buf);
@@ -146,11 +149,16 @@ int main(int argc, char *argv[]) {
             break;
 
         case REQUEST_STATS_COMMAND:
-            pid_t pid = fork();
-            if (pid == 0) {
+            if (fork() == 0) {
                 char **info = malloc(64 * sizeof(char *));
                 int num_pids = parse_command(request->payload, info, " ") - 1;
                 Array *files = get_file_pids(argv[1]);
+
+                char *command = strdup(info[0]);
+                int *pids = malloc(num_pids * sizeof(int));
+                convert_string_array_to_int_array(info + 1, pids, num_pids);
+                free(info[0]);
+                free(info);
 
                 // sort to avoid multiple loops over the directory
                 qsort(info, num_pids, sizeof(int), compare_ints);
@@ -159,22 +167,22 @@ int main(int argc, char *argv[]) {
                 int file_index = 0, pid_index = 0, total_executions = 0;
 
                 while (pid_index < num_pids && file_index < files->size) {
-                    if (files->array[file_index] < info[pid_index]) {
+                    if (files->array[file_index] < pids[pid_index]) {
                         file_index++;
                         continue;
                     }
 
-                    if (files->array[file_index] > info[pid_index]) {
+                    if (files->array[file_index] > pids[pid_index]) {
                         pid_index++;
                         continue;
                     }
 
-                    if (files->array[file_index] == info[pid_index]) {
+                    if (files->array[file_index] == pids[pid_index]) {
                         char file_path[32];
-                        snprintf(file_path, sizeof(file_path), "%s/%d.txt", argv[1], info[pid_index]);
+                        snprintf(file_path, sizeof(file_path), "%s/%d.txt", argv[1], pids[pid_index]);
 
                         Request *request = read_request_from_file(file_path);
-                        if (!strcmp(request->payload, info[0])) {
+                        if (!strcmp(request->payload, command)) {
                             total_executions++;
                         }
                         delete_request(request);
@@ -183,26 +191,30 @@ int main(int argc, char *argv[]) {
                         file_index++;
                     }
                 }
+                free(pids);
                 delete_array(files);
 
                 char *buf = malloc(64 * sizeof(char));
-                sprintf(buf, "%s was executed %d times\n", info[0], total_executions);
+                sprintf(buf, "%s was executed %d times\n", command, total_executions);
                 file_desc fifo = open(request->response_fifo_name, O_WRONLY);
-                int ret_val = write(fifo, buf, strlen(buf));
+                int ret_val = write(fifo, buf, strlen(buf) + 1);
                 THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
                 close(fifo);
-                free(info[0]);
-                free(info);
+                free(command);
                 free(buf);
             }
             break;
 
-        case REQUEST_STATS_UNIQ:
-            pid_t pid = fork();
-            if (pid == 0) {
-                char **pids = malloc(64 * sizeof(char *));
-                int num_pids = parse_command(request->payload, pids, " ");
+        case REQUEST_STATS_UNIQ: ;
+            if (fork() == 0) {
+                char **info = malloc(64 * sizeof(char *));
+                int num_pids = parse_command(request->payload, info, " ");
                 Array *files = get_file_pids(argv[1]);
+
+                int *pids = malloc(num_pids * sizeof(int));
+                convert_string_array_to_int_array(info, pids, num_pids);
+                free(info[0]);
+                free(info);
 
                 // sort to avoid multiple loops over the directory
                 qsort(pids, num_pids, sizeof(int), compare_ints);
@@ -228,7 +240,7 @@ int main(int argc, char *argv[]) {
 
                         Request *request = read_request_from_file(file_path);
                         if (!is_in_array(unique_commands, request->payload, commands_size)) {
-                            unique_commands[commands_size] = malloc(16 * sizeof(char));
+                            unique_commands[commands_size] = malloc(64 * sizeof(char));
                             strcpy(unique_commands[commands_size++], request->payload);
                         }
                         delete_request(request);
@@ -237,19 +249,19 @@ int main(int argc, char *argv[]) {
                         file_index++;
                     }
                 }
-                free(pids[0]);
                 free(pids);
                 delete_array(files);
 
-                char *buf = malloc(512 * sizeof(char)), *ptr = buf;
+                char *buf = malloc(256 * sizeof(char)), *ptr = buf;
 
                 for (int i = 0; i < commands_size; i++) {
                     ptr = strnconcat(ptr, unique_commands[i], strlen(unique_commands[i]));
                     ptr = strnconcat(ptr, "\n", 1);
                 }
+                buf[strlen(buf)] = '\0';
 
                 file_desc fifo = open(request->response_fifo_name, O_WRONLY);
-                int ret_val = write(fifo, buf, strlen(buf));
+                int ret = write(fifo, buf, strlen(buf) + 1);
                 THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
                 close(fifo);
                 for (int i = 0; i < commands_size; i++) {

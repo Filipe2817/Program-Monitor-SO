@@ -93,18 +93,12 @@ int get_diff_milliseconds(char *earlier_ts, char *later_ts) {
 }
 
 char *strnconcat(char *dest, char *src, int n) {
-    char *dest_start = dest;
-
     while (*dest)
         dest++;
 
-    while (*src && n > 0) {
-        *dest++ = *src++;
-        n--;
-    }
+    while ((*dest++ = *src++) && n-- > 0);
 
-    *dest = '\0';
-    return dest_start;
+    return --dest;
 }
 
 int str_to_int(const char *str) {
@@ -157,7 +151,10 @@ int compare_ints(const void *a, const void *b) {
 Array *get_file_pids(char *dir_path) {
     Array *files = create_array();
     DIR *dir = opendir(dir_path);
-    THROW_ERROR_IF_FAILED_WITH_RETURN(dir == NULL, "Error opening directory\n");
+    if (dir == NULL) {
+        perror("Error opening directory");
+        exit(EXIT_FAILURE);
+    }
     struct dirent *entry;
 
     while ((entry = readdir(dir)) != NULL) {
@@ -170,7 +167,10 @@ Array *get_file_pids(char *dir_path) {
         int len = dot_pos - entry->d_name;
 
         char *pid = malloc(sizeof(char) * (len + 1));
-        THROW_ERROR_IF_FAILED_WITH_RETURN(pid == NULL, "Error allocating memory\n");
+        if (pid == NULL) {
+            perror("Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
         strncpy(pid, entry->d_name, len);
         pid[len] = '\0';
 
@@ -180,4 +180,10 @@ Array *get_file_pids(char *dir_path) {
 
     closedir(dir);
     return files;
+}
+
+void convert_string_array_to_int_array(char **string_array, int *int_array, int size) {
+    for (int i = 0; i < size; i++) {
+        int_array[i] = str_to_int(string_array[i]);
+    }
 }

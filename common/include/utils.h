@@ -38,4 +38,6 @@ int compare_ints(const void *a, const void *b);
 
 Array *get_file_pids(char *dir_path);
 
+void convert_string_array_to_int_array(char **string_array, int *int_array, int size);
+
 #endif

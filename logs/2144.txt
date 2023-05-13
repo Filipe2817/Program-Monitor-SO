@@ -1,10 +1,10 @@
 Type: 1
-PID: 1145
+PID: 2144
 Program size: 17
 Program: grep cut uniq wc
 Timestamp size: 24
-Timestamp: 12-05-2023 15:10:23.579
-Execution time: 2
+Timestamp: 13-05-2023 15:45:08.839
+Execution time: 5
 Response FIFO name size: 27
-Response FIFO name: /home/fp/fifos/client-1145
+Response FIFO name: /home/fp/fifos/client-2144
 Request total size: 100
