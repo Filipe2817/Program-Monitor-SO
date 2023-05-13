@@ -1,0 +1,10 @@
+Type: 1
+PID: 8769
+Program size: 8
+Program: ls | wc
+Timestamp size: 24
+Timestamp: 13-05-2023 23:37:27.923
+Execution time: 2
+Response FIFO name size: 12
+Response FIFO name: client-8769
+Request total size: 76

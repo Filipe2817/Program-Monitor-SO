@@ -1,0 +1,10 @@
+Type: 1
+PID: 1864
+Program size: 8
+Program: ls | wc
+Timestamp size: 24
+Timestamp: 13-05-2023 22:45:35.602
+Execution time: 1
+Response FIFO name size: 12
+Response FIFO name: client-1864
+Request total size: 76

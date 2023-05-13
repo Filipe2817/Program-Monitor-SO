@@ -1,0 +1,10 @@
+Type: 1
+PID: 3041
+Program size: 3
+Program: ls
+Timestamp size: 24
+Timestamp: 13-05-2023 22:51:10.302
+Execution time: 2
+Response FIFO name size: 12
+Response FIFO name: client-3041
+Request total size: 71

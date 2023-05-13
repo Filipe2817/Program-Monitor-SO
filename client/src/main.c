@@ -8,14 +8,6 @@
 #include "../../common/include/request.h"
 #include <stdbool.h>
 
-#define FP
-
-#ifdef FP
-#define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
-#else
-#define FIFO_NAME "Tracer-Monitor"
-#endif
-
 void get_client_fifo_name(char *client_fifo_name) {
 #ifdef FP
     sprintf(client_fifo_name, "/home/fp/fifos/client-%d", getpid());

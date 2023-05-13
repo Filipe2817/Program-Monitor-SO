@@ -1,0 +1,10 @@
+Type: 1
+PID: 8752
+Program size: 3
+Program: ls
+Timestamp size: 24
+Timestamp: 13-05-2023 23:37:21.902
+Execution time: 3
+Response FIFO name size: 12
+Response FIFO name: client-8752
+Request total size: 71

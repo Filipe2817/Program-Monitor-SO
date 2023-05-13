@@ -1,0 +1,10 @@
+Type: 1
+PID: 845
+Program size: 8
+Program: ls | wc
+Timestamp size: 24
+Timestamp: 13-05-2023 22:38:10.482
+Execution time: 1
+Response FIFO name size: 11
+Response FIFO name: client-845
+Request total size: 75

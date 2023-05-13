@@ -10,14 +10,6 @@
 #include "../../common/include/hashtable.h"
 #include "../include/handler.h"
 
-#define FP
-
-#ifdef FP
-#define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
-#else
-#define FIFO_NAME "Tracer-Monitor"
-#endif
-
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         printf("Usage: %s <storage directory>\n", argv[0]);
@@ -41,7 +33,6 @@ int main(int argc, char *argv[]) {
         THROW_ERROR_IF_FAILED_WITH_RETURN(request == NULL, "Error allocating memory\n");
 
         int read_bytes = receive_request(request, fifo);
-        THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes != request->request_total_size, "Error receiving request\n");
 
         file_desc response_fifo = open(request->response_fifo_name, O_WRONLY);
         THROW_ERROR_IF_FAILED_WITH_RETURN(response_fifo == -1, "Error opening response FIFO\n");
