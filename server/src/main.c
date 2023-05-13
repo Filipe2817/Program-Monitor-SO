@@ -5,14 +5,13 @@
 #include <time.h>
 #include <string.h>
 #include <math.h>
-#include <dirent.h>
 #include "../../common/include/request.h"
 #include "../../common/include/utils.h"
 #include "../../common/include/request.h"
 #include "../../common/include/hashtable.h"
-#include <stdbool.h>
+#include "../../common/include/array.h"
 
-//#define FP
+// #define FP
 
 #ifdef FP
 #define FIFO_NAME "/home/fp/fifos/Tracer-Monitor"
@@ -21,6 +20,11 @@
 #endif
 
 int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s <storage directory>\n", argv[0]);
+        exit(1);
+    }
+
     int fifo_return = createNewFifo(FIFO_NAME);
     THROW_ERROR_IF_FAILED_WITH_RETURN(fifo_return == -1, "Error creating FIFO\n");
 
@@ -51,8 +55,8 @@ int main(int argc, char *argv[]) {
         switch (request->type) {
         case REQUEST_EXECUTE_START:
             insert(ongoing_ht, request->pid, request);
-
             break;
+
         case REQUEST_EXECUTE_END:
             delete (ongoing_ht, request->pid);
             insert(finished_ht, request->pid, request);
@@ -60,12 +64,7 @@ int main(int argc, char *argv[]) {
             char *request_string = get_request_string(request);
 
             char path[100];
-
-            if (argc == 2) {
-                snprintf(path, 100, "%s/%d.txt", argv[1], request->pid);
-            } else {
-                snprintf(path, 100, "%d.txt", request->pid);
-            }
+            snprintf(path, 100, "%s/%d.txt", argv[1], request->pid);
 
             int storage_fd = open(path, O_WRONLY | O_CREAT, 0666);
             THROW_ERROR_IF_FAILED_WITH_RETURN(storage_fd == -1, "Error opening file.\n");
@@ -77,7 +76,8 @@ int main(int argc, char *argv[]) {
             free(request_string);
             // print_ht(ht);
             break;
-        case REQUEST_STATUS: {
+
+        case REQUEST_STATUS:
             char *status = get_ongoing_programs(ongoing_ht);
 
             file_desc status_fifo = open(request->response_fifo_name, O_WRONLY);
@@ -92,229 +92,163 @@ int main(int argc, char *argv[]) {
 
             free(status);
             close(status_fifo);
-
             break;
-        }
-        case REQUEST_STATS_TIME: {
+
+        case REQUEST_STATS_TIME:
             pid_t pid = fork();
             if (pid == 0) {
-                int final_value = 0;
-                char **list = calloc(200, sizeof(char*));
-                parse_command(request->program, list);
-                DIR *d;
-                struct dirent *dir;
-                d = opendir(argv[1]);
-                if (d) {
-                    while ((dir = readdir(d)) != NULL) {
-                        //printf("%s\n", dir->d_name);                        
-                        int stop = 0;
-                        if(strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0){
-                            stop = 1;
-                        }
-                        if(stop == 0)
-                        {
-                            char *dir_aux = calloc(strlen(dir->d_name), sizeof(char*));
-                            strcpy(dir_aux, dir->d_name);
-                            dir_aux[strlen(dir_aux) - 4] = '\0';
+                char **pids = malloc(64 * sizeof(char *));
+                int num_pids = parse_command(request->payload, pids, " ");
+                Array *files = get_file_pids(argv[1]);
 
-                            char *dir_name = calloc(strlen(dir_aux), sizeof(char*));
-                            int j = 0;
-                            while(dir_aux[j] != 0){
+                // sort to avoid multiple loops over the directory
+                qsort(pids, num_pids, sizeof(int), compare_ints);
+                sort_array(files);
 
-                                dir_name[j] = dir_aux[j];
-                                j++;
-                            }
-                            dir_name[j] = 0;
-                            int b = found_in(list, dir_name);
-                            if (b == 1)
-                            {
-                                char *aux_buf = calloc(200, sizeof(char*));
-                                sprintf(aux_buf, "%s/%s", argv[1], dir->d_name);
-                                file_desc fd = open(aux_buf, O_RDONLY);
-                                char *read_buf = calloc(500, sizeof(char*));
-                                int ret_val = read(fd, read_buf, 500);
-                                THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from File\n");
-                                close(fd);
-                                free(aux_buf);
+                int file_index = 0, pid_index = 0;
+                long total_time = 0;
 
-                                int count = 0;
-                                int flag = 0;
-                                char *paragraph = strtok(read_buf, "\n");
-                                while (paragraph != NULL && flag == 0) {
-                                    count++;
-                                    if (count == 7)
-                                        flag = 1;
-                                    if (flag == 0)
-                                        paragraph = strtok(NULL, "\n");
-                                }
-                                char time[64];
-                                strncpy(time, paragraph + 16, (strlen(paragraph) - 16));
-                                time[strlen(paragraph) - 16] = 0;
-
-                                int val = str_to_int(time);;
-                                final_value = final_value + val;
-
-                                //free(paragraph);
-                                free(read_buf);
-                            }
-                            free(dir_name);
-                            free(dir_aux);
-                        }
+                while (pid_index < num_pids && file_index < files->size) {
+                    if (files->array[file_index] < pids[pid_index]) {
+                        file_index++;
+                        continue;
                     }
-                    closedir(d);
 
-                    char *buf = calloc(200, sizeof(char*));
-                    sprintf(buf, "Stats_time: %d milisegundos\n", final_value);
-                    file_desc fifo = open(request->response_fifo_name, O_WRONLY);
-                    int ret_val = write(fifo, buf, strlen(buf));
-                    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+                    if (files->array[file_index] > pids[pid_index]) {
+                        pid_index++;
+                        continue;
+                    }
 
-                    close(fifo);
-                    free(buf);
+                    if (files->array[file_index] == pids[pid_index]) {
+                        char file_path[32];
+                        snprintf(file_path, sizeof(file_path), "%s/%d.txt", argv[1], pids[pid_index]);
+
+                        Request *request = read_request_from_file(file_path);
+                        total_time += request->execution_time;
+                        delete_request(request);
+
+                        pid_index++;
+                        file_index++;
+                    }
                 }
+                free(pids[0]);
+                free(pids);
+                delete_array(files);
 
-                free(list[0]);
-                free(list);
+                char *buf = malloc(64 * sizeof(char));
+                sprintf(buf, "Total execution time is %ld\n", total_time);
+                file_desc fifo = open(request->response_fifo_name, O_WRONLY);
+                int ret_val = write(fifo, buf, strlen(buf));
+                THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+                close(fifo);
+                free(buf);
             }
-            //write(STDOUT_FILENO, "\nRequest_Stats_Time Forked\n", 30);
-
             break;
-        }
-        case REQUEST_STATS_COMMAND: {
+
+        case REQUEST_STATS_COMMAND:
             pid_t pid = fork();
             if (pid == 0) {
-                int final_count = 0;
-                DIR *d;
-                struct dirent *dir;
-                d = opendir(argv[1]);
-                if (d) {
-                    while ((dir = readdir(d)) != NULL) {
-                        //printf("%s\n", dir->d_name);                        
-                        int stop = 0;
-                        if(strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0){
-                            stop = 1;
-                        }
-                        if(stop == 0)
-                        {
-                            char *aux_buf = calloc(200, sizeof(char*));
-                            sprintf(aux_buf, "%s/%s", argv[1], dir->d_name);
-                            file_desc fd = open(aux_buf, O_RDONLY);
-                            char *read_buf = calloc(500, sizeof(char*));
-                            int ret_val = read(fd, read_buf, 500);
-                            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from File\n");
-                            close(fd);
-                            free(aux_buf);
+                char **info = malloc(64 * sizeof(char *));
+                int num_pids = parse_command(request->payload, info, " ") - 1;
+                Array *files = get_file_pids(argv[1]);
 
-                            int count = 0;
-                            int flag = 0;
-                            char *paragraph = strtok(read_buf, "\n");
-                            while (paragraph != NULL && flag == 0) {
-                                count++;
-                                if (count == 4)
-                                    flag = 1;
-                                if (flag == 0)
-                                    paragraph = strtok(NULL, "\n");
-                            }
+                // sort to avoid multiple loops over the directory
+                qsort(pids, num_pids, sizeof(int), compare_ints);
+                sort_array(files);
 
-                            char prog[64];
-                            strncpy(prog, paragraph + 9, (strlen(paragraph) - 9));
-                            prog[strlen(paragraph) - 9] = 0;
-                            if (strcmp(prog, request->program) == 0) {
-                                final_count++;
-                            }
-                            //free(paragraph);
-                            free(read_buf);
-                        }
+                int file_index = 0, pid_index = 0, total_executions = 0;
+
+                while (pid_index < num_pids && file_index < files->size) {
+                    if (files->array[file_index] < info[pid_index]) {
+                        file_index++;
+                        continue;
                     }
-                    closedir(d);
 
-                    char *buf = calloc(100, sizeof(char*));
-                    sprintf(buf, "Stats_command: %d vezes\n", final_count);
-                    file_desc fifo = open(request->response_fifo_name, O_WRONLY);
-                    int ret_val = write(fifo, buf, 100);
-                    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+                    if (files->array[file_index] > info[pid_index]) {
+                        pid_index++;
+                        continue;
+                    }
 
-                    close(fifo);
-                    free(buf);
+                    if (files->array[file_index] == info[pid_index]) {
+                        char file_path[32];
+                        snprintf(file_path, sizeof(file_path), "%s/%d.txt", argv[1], info[pid_index]);
+
+                        Request *request = read_request_from_file(file_path);
+                        if (!strcmp(request->payload, info[0])) {
+                            total_executions++;
+                        }
+                        delete_request(request);
+
+                        pid_index++;
+                        file_index++;
+                    }
                 }
-            }
-            //write(STDOUT_FILENO, "\nRequest_Stats_Command Forked\n", 30);
+                delete_array(files);
 
+                char *buf = malloc(64 * sizeof(char));
+                sprintf(buf, "%s was executed %d times\n", info[0], total_executions);
+                file_desc fifo = open(request->response_fifo_name, O_WRONLY);
+                int ret_val = write(fifo, buf, strlen(buf));
+                THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+                close(fifo);
+                free(info[0]);
+                free(info);
+                free(buf);
+            }
             break;
-        }
-        case REQUEST_STATS_UNIQ: {
+
+        case REQUEST_STATS_UNIQ:
             pid_t pid = fork();
             if (pid == 0) {
-                char **list = malloc(sizeof(char**));
-                int i;
-                DIR *d;
-                struct dirent *dir;
-                d = opendir(argv[1]);
-                if (d) {
-                    while ((dir = readdir(d)) != NULL) {
-                        //printf("%s\n", dir->d_name);                        
-                        int stop = 0;
-                        if(strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0){
-                            stop = 1;
-                        }
-                        if(stop == 0)
-                        {
-                            char *aux_buf = calloc(200, sizeof(char*));
-                            sprintf(aux_buf, "%s/%s", argv[1], dir->d_name);
-                            file_desc fd = open(aux_buf, O_RDONLY);
-                            char *read_buf = calloc(500, sizeof(char*));
-                            int ret_val = read(fd, read_buf, 500);
-                            THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error reading from File\n");
-                            close(fd);
-                            free(aux_buf);
+                char **pids = malloc(64 * sizeof(char *));
+                int num_pids = parse_command(request->payload, pids, " ");
+                Array *files = get_file_pids(argv[1]);
 
-                            int count = 0;
-                            int flag = 0;
-                            char *paragraph = strtok(read_buf, "\n");
-                            while (paragraph != NULL && flag == 0) {
-                                count++;
-                                if (count == 4)
-                                    flag = 1;
-                                if (flag == 0)
-                                    paragraph = strtok(NULL, "\n");
-                            }
+                // sort to avoid multiple loops over the directory
+                qsort(pids, num_pids, sizeof(int), compare_ints);
+                sort_array(files);
 
-                            char prog[64];
-                            strncpy(prog, paragraph + 9, (strlen(paragraph) - 9));
-                            prog[strlen(paragraph) - 9] = 0;
-                            if (!found_in(list, prog)) {
-                                i = 0;
-                                while (list[i] != 0) {
-                                    i++;
-                                }
-                                list[i] = calloc(strlen(prog), sizeof(char*));
-                                strcpy(list[i], prog);
-                            }
-                            //free(paragraph);
-                            free(read_buf);
-                        }
-                    }
-                    closedir(d);
+                int file_index = 0, pid_index = 0, commands_size = 0;
+                char **unique_commands = malloc(32 * sizeof(char *));
 
-                    char *buf = calloc(250, sizeof(char*));
-                    strcat(buf, "Stats_uniq:\n");
-                    for (int j = 0; j <= i; j++) {
-                        strcat(buf, list[j]);
-                        strcat(buf, "\n");
+                while (pid_index < num_pids && file_index < files->size) {
+                    if (files->array[file_index] < info[pid_index]) {
+                        file_index++;
+                        continue;
                     }
 
-                    file_desc fifo = open(request->response_fifo_name, O_WRONLY);
-                    int ret_val = write(fifo, buf, strlen(buf));
-                    THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+                    if (files->array[file_index] > info[pid_index]) {
+                        pid_index++;
+                        continue;
+                    }
 
-                    close(fifo);
-                    free(buf);
+                    if (files->array[file_index] == info[pid_index]) {
+                        char file_path[32];
+                        snprintf(file_path, sizeof(file_path), "%s/%d.txt", argv[1], info[pid_index]);
+
+                        Request *request = read_request_from_file(file_path);
+                        if (!is_in_array(unique_commands, request->payload, commands_size)) {
+                            unique_commands[commands_size] = malloc(16 * sizeof(char));
+                            strcpy(unique_commands[commands_size++], request->payload);
+                        }
+                        delete_request(request);
+
+                        pid_index++;
+                        file_index++;
+                    }
                 }
-            }
-            //write(STDOUT_FILENO, "\nRequest_Stats_Uniq Forked\n", 30);
+                delete_array(files);
 
+                char *buf = malloc(512 * sizeof(char)), *ptr = buf;
+
+                file_desc fifo = open(request->response_fifo_name, O_WRONLY);
+                int ret_val = write(fifo, buf, strlen(buf));
+                THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
+                close(fifo);
+                free(buf);
+            }
             break;
-        }
+
         default:
             break;
         }
