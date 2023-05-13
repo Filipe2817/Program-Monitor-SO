@@ -10,9 +10,9 @@
 #include <limits.h>
 #include <dirent.h>
 #include "../include/utils.h"
-#include "../include/string_array.h"
+#include "../include/array.h"
 
-int createNewFifo(const char *fifo_name) {
+int create_new_fifo(const char *fifo_name) {
     struct stat stats;
 
     if (stat(fifo_name, &stats) < 0) { // Stat failed
@@ -30,18 +30,25 @@ int createNewFifo(const char *fifo_name) {
     return 0;
 }
 
-void parse_command(const char *command, char **args) {
+int parse_command(const char *command, char **args, char *sep) {
     char *cmd_copy = NULL, *token = NULL;
     int argc = 0;
 
     cmd_copy = strdup(command);
-    THROW_ERROR_IF_FAILED_VOID(cmd_copy == NULL, "Error allocating memory\n");
+    THROW_ERROR_IF_FAILED_WITH_RETURN(cmd_copy == NULL, "Error allocating memory\n");
 
-    while ((token = strsep(&cmd_copy, " ")) != NULL) { // free(args[0]) -> args[0] has the same address as cmd_copy
+    while ((token = strsep(&cmd_copy, sep)) != NULL) { // free(args[0]) -> args[0] has the same address as cmd_copy
         if (*token == '\0')
             continue; // Skip empty tokens
+
+        if (*token == ' ') { // Space == problem to free the commands because the next parse is going to skip the space like a
+            token++;         // token and the address won't be the same as the address of line_copy
+        }
+
         args[argc++] = token;
     }
+
+    return argc;
 }
 
 int is_in_array(char **array, char *element, int size) {
@@ -83,6 +90,21 @@ int get_diff_milliseconds(char *earlier_ts, char *later_ts) {
                   (millisecond2 - millisecond1);
 
     return diff_ms;
+}
+
+char *strnconcat(char *dest, char *src, int n) {
+    char *dest_start = dest;
+
+    while (*dest)
+        dest++;
+
+    while (*src && n > 0) {
+        *dest++ = *src++;
+        n--;
+    }
+
+    *dest = '\0';
+    return dest_start;
 }
 
 int str_to_int(const char *str) {

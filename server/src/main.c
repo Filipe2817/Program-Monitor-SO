@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    int fifo_return = createNewFifo(FIFO_NAME);
+    int fifo_return = create_new_fifo(FIFO_NAME);
     THROW_ERROR_IF_FAILED_WITH_RETURN(fifo_return == -1, "Error creating FIFO\n");
 
     file_desc fifo = open(FIFO_NAME, O_RDWR);
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
         int read_bytes = receive_request(request, fifo);
         THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes != request->request_total_size, "Error receiving request\n");
 
-        // print_request(request);
+        //print_request(request);
 
         file_desc response_fifo = open(request->response_fifo_name, O_WRONLY);
         THROW_ERROR_IF_FAILED_WITH_RETURN(response_fifo == -1, "Error opening response FIFO\n");
@@ -63,8 +63,8 @@ int main(int argc, char *argv[]) {
 
             char *request_string = get_request_string(request);
 
-            char path[100];
-            snprintf(path, 100, "%s/%d.txt", argv[1], request->pid);
+            char path[32];
+            snprintf(path, 32, "%s/%d.txt", argv[1], request->pid);
 
             int storage_fd = open(path, O_WRONLY | O_CREAT, 0666);
             THROW_ERROR_IF_FAILED_WITH_RETURN(storage_fd == -1, "Error opening file.\n");
@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
                 Array *files = get_file_pids(argv[1]);
 
                 // sort to avoid multiple loops over the directory
-                qsort(pids, num_pids, sizeof(int), compare_ints);
+                qsort(info, num_pids, sizeof(int), compare_ints);
                 sort_array(files);
 
                 int file_index = 0, pid_index = 0, total_executions = 0;
@@ -212,19 +212,19 @@ int main(int argc, char *argv[]) {
                 char **unique_commands = malloc(32 * sizeof(char *));
 
                 while (pid_index < num_pids && file_index < files->size) {
-                    if (files->array[file_index] < info[pid_index]) {
+                    if (files->array[file_index] < pids[pid_index]) {
                         file_index++;
                         continue;
                     }
 
-                    if (files->array[file_index] > info[pid_index]) {
+                    if (files->array[file_index] > pids[pid_index]) {
                         pid_index++;
                         continue;
                     }
 
-                    if (files->array[file_index] == info[pid_index]) {
+                    if (files->array[file_index] == pids[pid_index]) {
                         char file_path[32];
-                        snprintf(file_path, sizeof(file_path), "%s/%d.txt", argv[1], info[pid_index]);
+                        snprintf(file_path, sizeof(file_path), "%s/%d.txt", argv[1], pids[pid_index]);
 
                         Request *request = read_request_from_file(file_path);
                         if (!is_in_array(unique_commands, request->payload, commands_size)) {
@@ -237,19 +237,31 @@ int main(int argc, char *argv[]) {
                         file_index++;
                     }
                 }
+                free(pids[0]);
+                free(pids);
                 delete_array(files);
 
                 char *buf = malloc(512 * sizeof(char)), *ptr = buf;
+
+                for (int i = 0; i < commands_size; i++) {
+                    ptr = strnconcat(ptr, unique_commands[i], strlen(unique_commands[i]));
+                    ptr = strnconcat(ptr, "\n", 1);
+                }
 
                 file_desc fifo = open(request->response_fifo_name, O_WRONLY);
                 int ret_val = write(fifo, buf, strlen(buf));
                 THROW_ERROR_IF_FAILED_WITH_RETURN(ret_val == -1, "Error writing to FIFO\n");
                 close(fifo);
+                for (int i = 0; i < commands_size; i++) {
+                    free(unique_commands[i]);
+                }
+                free(unique_commands);
                 free(buf);
             }
             break;
 
         default:
+            printf("Unknown Request Type\n");
             break;
         }
     }
