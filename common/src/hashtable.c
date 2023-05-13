@@ -133,11 +133,11 @@ char *get_ongoing_programs(Hashtable *ht)
 
             int elapsed_time_digits = floor(log10(elapsed_time)) + 1;
 
-            int line_len = pid_digits + elapsed_time_digits + current->request->program_size + 6; // 6 dos 3 espaços + \n + "ms"
+            int line_len = pid_digits + elapsed_time_digits + current->request->payload_size + 6; // 6 dos 3 espaços + \n + "ms"
 
             char *status_line = malloc(line_len * sizeof(char));
 
-            snprintf(status_line, line_len, "%d %s %d ms\n", current->request->pid, current->request->program, elapsed_time);
+            snprintf(status_line, line_len, "%d %s %d ms\n", current->request->pid, current->request->payload, elapsed_time);
 
             if ((len += line_len) >= size)
             {
@@ -182,11 +182,11 @@ void print_ht(Hashtable *ht)
             printf("(Key: %d)\n", current->key);
             printf("Type: %d\n", current->request->type);
             printf("PID: %d\n", current->request->pid);
-            printf("Program: %s\n", current->request->program);
+            printf("Program: %s\n", current->request->payload);
             printf("Timestamp: %s\n", current->request->timestamp);
             printf("Execution time: %ld\n", current->request->execution_time);
             printf("Response FIFO name: %s\n", current->request->response_fifo_name);
-            printf("Request total size: %d\n", current->request->program_size);
+            printf("Request total size: %d\n", current->request->request_total_size);
             printf("REQUEST PRINTED\n");
             current = current->next;
         }

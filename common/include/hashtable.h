@@ -1,7 +1,7 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 
-#define SIZE 64
+#define SIZE 128
 
 #include "../include/request.h"
 

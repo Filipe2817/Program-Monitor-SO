@@ -5,7 +5,12 @@
 #include <string.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <limits.h>
+#include <dirent.h>
 #include "../include/utils.h"
+#include "../include/array.h"
 
 int create_new_fifo(const char *fifo_name) {
     struct stat stats;
@@ -46,22 +51,12 @@ int parse_command(const char *command, char **args, char *sep) {
     return argc;
 }
 
-bool found_in(char **list, char *id) {
-
-    int i = 0;
-    int flag = 0;
-    while (list[i] != 0 && flag == 0) {
-
-        if (strcmp(list[i], id)) {
-            flag = 1;
-        } else {
-            i++;
-        }
+int is_in_array(char **array, char *element, int size) {
+    for (int i = 0; i < size; i++) {
+        if (!strcmp(array[i], element))
+            return 1;
     }
-    if (flag == 1) {
-        return true;
-    }
-    return false;
+    return 0;
 }
 
 void get_timestamp(char *buffer, int size) {
@@ -109,6 +104,80 @@ char *strnconcat(char *dest, char *src, int n) {
     }
 
     *dest = '\0';
-
     return dest_start;
+}
+
+int str_to_int(const char *str) {
+    char *endptr;
+    errno = 0;
+
+    long long_var = strtol(str, &endptr, 10);
+    //   out of range   , extra junk at end,  no conversion at all
+    if (errno == ERANGE || *endptr != '\0' || str == endptr) {
+        perror("Something went wrong converting string to integer!\n");
+        exit(EXIT_FAILURE);
+    }
+
+// Needed when `int` and `long` have different ranges
+#if LONG_MIN < INT_MIN || LONG_MAX > INT_MAX
+    if (long_var < INT_MIN || long_var > INT_MAX) {
+        errno = ERANGE;
+        perror("String value is out of range for type integer\n");
+        exit(EXIT_FAILURE);
+    }
+#endif
+
+    return (int)long_var;
+}
+
+int readln(file_desc fd, char *line, int size) {
+    THROW_ERROR_IF_FAILED_WITH_RETURN(size <= 0, "Invalid buffer size");
+
+    ssize_t read_bytes = read(fd, line, size);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes < 0, "Read failed");
+
+    THROW_ERROR_IF_FAILED_WITH_RETURN(read_bytes == (ssize_t)size, "Buffer overflow");
+
+    int line_len = strcspn(line, "\n") + 1;
+    line[line_len] = 0;
+    lseek(fd, line_len - read_bytes, SEEK_CUR);
+
+    return line_len;
+}
+
+int compare_ints(const void *a, const void *b) {
+    int arg1 = *(const int *)a;
+    int arg2 = *(const int *)b;
+
+    return (arg1 < arg2) ? -1 : (arg1 > arg2);
+    // return (arg1 > arg2) - (arg1 < arg2); // possible shortcut
+    // return arg1 - arg2; // erroneous shortcut (fails if INT_MIN is present)
+}
+
+Array *get_file_pids(char *dir_path) {
+    Array *files = create_array();
+    DIR *dir = opendir(dir_path);
+    THROW_ERROR_IF_FAILED_WITH_RETURN(dir == NULL, "Error opening directory\n");
+    struct dirent *entry;
+
+    while ((entry = readdir(dir)) != NULL) {
+        // Skip hidden files and directories ("." and "..")
+        if (entry->d_name[0] == '.') {
+            continue;
+        }
+
+        char *dot_pos = strrchr(entry->d_name, '.');
+        int len = dot_pos - entry->d_name;
+
+        char *pid = malloc(sizeof(char) * (len + 1));
+        THROW_ERROR_IF_FAILED_WITH_RETURN(pid == NULL, "Error allocating memory\n");
+        strncpy(pid, entry->d_name, len);
+        pid[len] = '\0';
+
+        insert_array(files, str_to_int(pid));
+        free(pid);
+    }
+
+    closedir(dir);
+    return files;
 }
